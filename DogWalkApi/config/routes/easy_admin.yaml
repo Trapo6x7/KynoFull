@@ -1,0 +1,5 @@
+# config/routes/easy_admin.yaml
+# Load all EasyAdmin controllers and dashboards using PHP attributes
+controllers:
+  resource: ../../src/Controller/Admin
+  type: attribute

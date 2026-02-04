@@ -1,0 +1,81 @@
+{% extends '@EasyAdmin/layout.html.twig' %}
+
+{% block head_stylesheets %}
+	{{ parent() }}
+	<style>
+		body {
+			/* background-color: #EEFDE4; */
+			background-image: url("{{ asset('img/backgroundimage2.png') }}");
+			background-size: cover;
+			background-position: center;
+		}
+		.container {
+			max-width: 1200px;
+			margin: auto;
+			padding: 2rem;
+		}
+		.card {
+			background-color: #FCFFF5;
+			border-radius: 0.75rem;
+			box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+			min-height: 200px;
+			max-height: 250px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+		}
+		.card-title {
+			color: #7B4E2E;
+			font-weight: 600;
+		}
+		.display-4 {
+			color: #355E3B;
+			font-size: 2.5rem;
+		}
+		/* Sidebar customization */
+		.sidebar {
+			background-color: #7B4E2E !important;
+			border-right: 1px solid rgba(0, 0, 0, 0.05);
+		}
+		.sidebar .menu a {
+			color: #EEFDE4;
+			padding: 0.75rem 1rem;
+			font-weight: 500;
+		}
+		.sidebar .menu a:hover,
+		.sidebar .menu a.active {
+			background-color: #EEFDE4 !important;
+			color: #355E3B !important;
+		}
+		.sidebar .menu .menu-section {
+			color: #EEFDE4;
+			margin-top: 1rem;
+			padding-left: 1rem;
+			font-size: 0.9rem;
+			text-transform: uppercase;
+		}
+		.user-name {
+			color: #355E3B;
+			font-weight: 600;
+		}
+	</style>
+{% endblock %}
+
+{% block content %}
+	<div class="container">
+		<h1 class="mb-4 fw-bold" style="color: #7B4E2E;">Tableau de bord DogWalk</h1>
+		<div class="row">
+			{% for label, count in counts %}
+				<div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+					<div class="card p-4 text-center">
+						<div class="card-body">
+							<h5 class="card-title">{{ label|replace({'groupRequests':'Demandes de groupe','groupRoles':'Rôles de groupe','blockLists':'Liste de blocage'})|capitalize }}</h5>
+							<p class="display-4 mb-0">{{ count }}</p>
+						</div>
+					</div>
+				</div>
+			{% endfor %}
+		</div>
+	</div>
+{% endblock %}
