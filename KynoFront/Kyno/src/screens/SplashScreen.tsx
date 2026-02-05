@@ -133,9 +133,9 @@ export default function SplashScreen({ onFinish }: { onFinish?: () => void }) {
     transform: [{ translateY: buttonsTranslateY.value }],
   }));
 
-  const handleLogin = () => {
-    // Vérifier le statut de l'utilisateur avant de rediriger
-    if (user) {
+  useEffect(() => {
+    if (showWelcome && user) {
+      // Rediriger automatiquement si l'utilisateur est connecté
       if (!user.is_complete) {
         router.replace('/(onboarding)/your-detail');
       } else if (!user.isVerified) {
@@ -143,9 +143,11 @@ export default function SplashScreen({ onFinish }: { onFinish?: () => void }) {
       } else {
         router.replace('/(tabs)/explore');
       }
-    } else {
-      router.push('/(auth)/login');
     }
+  }, [showWelcome, user]);
+
+  const handleLogin = () => {
+    router.push('/(auth)/login');
   };
   const handleRegister = () => {
     router.push('/(auth)/register');

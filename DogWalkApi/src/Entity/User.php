@@ -190,7 +190,15 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?\DateTimeImmutable $birthdate = null;
 
     #[ORM\Column]
+    #[Groups(['me:read', 'user:read'])]
     private ?bool $isVerified = false;
+
+    #[Groups(['me:read', 'user:read'])]
+    #[SerializedName('isVerified')]
+    public function getIsVerifiedForSerialization(): bool
+    {
+        return $this->isVerified ?? false;
+    }
 
     #[ORM\Column(length: 6, nullable: true)]
     private ?string $verificationCode = null;

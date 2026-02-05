@@ -7,7 +7,7 @@
 
 // const DEV_API_URL = 'http://10.0.2.2:8000'; // Pour Android Emulator
 // const DEV_API_URL = 'http://localhost:8000'; // Pour iOS Simulator
-const DEV_API_URL = 'http://192.168.1.136:8000'; // Pour appareil physique
+const DEV_API_URL = 'http://192.168.0.15:8000'; // Pour appareil physique
 
 const PROD_API_URL = 'https://api.dogwalk.com'; // URL de production
 

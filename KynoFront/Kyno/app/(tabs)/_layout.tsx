@@ -14,8 +14,7 @@ export default function TabLayout() {
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          backgroundColor: Colors.white,
-          borderTopColor: Colors.grayLight,
+          display: 'none', // Masquer la navbar par défaut
         },
       }}>
       <Tabs.Screen
