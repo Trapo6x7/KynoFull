@@ -74,7 +74,7 @@ export default function LoginScreen() {
         router.replace('/(onboarding)/your-detail');
       } else {
         // Tout est OK -> accueil
-        router.replace('/(tabs)');
+        router.replace('/(tabs)/explore');
       }
     } catch (error: any) {
       setShowLoading(false);
@@ -108,7 +108,7 @@ export default function LoginScreen() {
       <View style={styles.headerContainer}>
         <TouchableOpacity 
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={() => router.replace('/')}
           activeOpacity={0.7}
         >
           <Ionicons name="arrow-back" size={24} color={Colors.black} />

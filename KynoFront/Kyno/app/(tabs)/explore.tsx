@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/src/constants/colors';
 import { useFocusEffect } from '@react-navigation/native';
 import * as NavigationBar from 'expo-navigation-bar';
+import { router } from 'expo-router';
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.85;
@@ -95,8 +96,7 @@ export default function ExploreScreen() {
   };
 
   const handleSettings = () => {
-    // TODO: Ouvrir les paramètres de filtrage
-    console.log('Settings');
+    router.push('/settings');
   };
 
   if (isLoading) {
@@ -109,7 +109,7 @@ export default function ExploreScreen() {
               style={styles.headerDogIcon}
             />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIconRight}>
+          <TouchableOpacity style={styles.headerIconRight} onPress={handleSettings}>
             <Ionicons name="options-outline" size={24} color={Colors.black} />
           </TouchableOpacity>
         </View>
@@ -159,7 +159,7 @@ export default function ExploreScreen() {
               style={styles.headerDogIcon}
             />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIconRight}>
+          <TouchableOpacity style={styles.headerIconRight} onPress={handleSettings}>
             <Ionicons name="options-outline" size={24} color={Colors.black} />
           </TouchableOpacity>
         </View>
@@ -210,7 +210,7 @@ export default function ExploreScreen() {
             style={styles.headerDogIcon}
           />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.headerIconRight}>
+        <TouchableOpacity style={styles.headerIconRight} onPress={handleSettings}>
           <Ionicons name="options-outline" size={24} color={Colors.black} />
         </TouchableOpacity>
       </View>
