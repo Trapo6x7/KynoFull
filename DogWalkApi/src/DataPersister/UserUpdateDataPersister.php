@@ -27,17 +27,16 @@ class UserUpdateDataPersister implements ProcessorInterface
     {
         if (str_contains($operation->getName(), 'image_post')) {
             $request = $this->requestStack->getCurrentRequest();
-
             /** @var User $user */
             $user = $this->security->getUser();
-
             if ($user) {
                 if ($request && $request->files->has('file')) {
                     $file = $request->files->get('file');
-
                     if ($file) {
                         $fileName = $this->fileUploader->upload($file);
-                        $user->setImageFilename($fileName);
+                        $images = $user->getImages() ?? [];
+                        $images[] = $fileName;
+                        $user->setImages($images);
                         $user->setUpdatedAt(new \DateTimeImmutable());
                         $this->entityManager->flush();
                     }
@@ -48,31 +47,19 @@ class UserUpdateDataPersister implements ProcessorInterface
 
 
         if ($data instanceof User) {
-            // Récupère les keywords avant persist
-            $keywords = $data->getKeywords();
-
-            // Récupérer les données de la requête
+            // Récupère les keywords depuis la requête HTTP (stockés par le listener)
             $request = $this->requestStack->getCurrentRequest();
-            if ($request) {
-                $requestData = json_decode($request->getContent(), true);
+            $keywords = $request?->attributes->get('_keywords') ?? $data->getKeywords();
 
-                // Mettre à jour uniquement les champs modifiés
-                if (isset($requestData['city'])) {
-                    $data->setCity($requestData['city']);
-                }
-
-                if (isset($requestData['description'])) {
-                    $data->setDescription($requestData['description']);
-                }
-
-                // Ajoutez d'autres champs si nécessaire
-            }
-
+            // Les données sont déjà dans $data grâce à la désérialisation API Platform
+            // Mettre à jour la date de modification
+            $data->setUpdatedAt(new \DateTimeImmutable());
+            
             $this->entityManager->persist($data);
             $this->entityManager->flush();
 
             // Synchronise les keywords
-            if ($keywords !== null) {
+            if ($keywords !== null && is_array($keywords) && count($keywords) > 0) {
                 $this->keywordService->syncKeywords(
                     User::getKeywordableType(),
                     $data->getId(),

@@ -15,6 +15,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useFonts, Manrope_400Regular, Manrope_600SemiBold, Manrope_700Bold } from '@expo-google-fonts/manrope';
 import { useAuth } from '@/src/context/AuthContext';
 import Colors from '@/src/constants/colors';
@@ -23,7 +24,7 @@ import LoadingScreen from '@/src/screens/LoadingScreen';
 const { width } = Dimensions.get('window');
 
 export default function LoginScreen() {
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
@@ -59,11 +60,22 @@ export default function LoginScreen() {
 
     try {
       setShowLoading(true);
-      await login({ email, password });
-      // Attendre un peu pour montrer le loader
-      setTimeout(() => {
+      const loggedInUser = await login({ email, password });
+      
+      // Attendre un peu pour que le loader soit visible
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Rediriger selon le statut de l'utilisateur
+      if (!loggedInUser.isVerified) {
+        // Email non vérifié -> écran de vérification
+        router.replace('/(onboarding)/verify-email');
+      } else if (!loggedInUser.is_complete) {
+        // Profil incomplet -> onboarding
+        router.replace('/(onboarding)/your-detail');
+      } else {
+        // Tout est OK -> accueil
         router.replace('/(tabs)');
-      }, 1500);
+      }
     } catch (error: any) {
       setShowLoading(false);
       Alert.alert(
@@ -92,8 +104,15 @@ export default function LoginScreen() {
       style={styles.container}
       resizeMode="cover"
     >
-      {/* Logo fixe en haut */}
+      {/* Bouton retour + Logo fixe en haut */}
       <View style={styles.headerContainer}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="arrow-back" size={24} color={Colors.black} />
+        </TouchableOpacity>
         <Image
           source={require('@/assets/images/kynologo.png')}
           style={styles.logo}
@@ -211,6 +230,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'transparent',
+    position: 'relative',
+  },
+  backButton: {
+    position: 'absolute',
+    left: 20,
+    top: 50,
+    zIndex: 10,
+    padding: 8,
   },
   logo: {
     width: width * 0.35,

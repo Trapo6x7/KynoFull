@@ -9,6 +9,8 @@ export interface CreateDogData {
   description?: string;
   gender?: 'male' | 'female';
   weight?: number;
+  size?: string;
+  keywords?: string[];
 }
 
 export interface UpdateDogData extends Partial<CreateDogData> {}
@@ -41,14 +43,22 @@ const dogService = {
       description: data.description,
       gender: data.gender,
       weight: data.weight,
+      size: data.size,
     };
 
     if (data.raceId) {
-      payload.race = `/api/races/${data.raceId}`;
+      // Backend expects race as an array of IRIs (ManyToMany)
+      payload.race = [`/api/races/${data.raceId}`];
     }
 
     if (data.birthDate) {
-      payload.birthDate = data.birthDate;
+      // Backend expects 'birthdate' (lowercase d) in ISO date format
+      payload.birthdate = data.birthDate;
+    }
+
+    if (data.keywords && data.keywords.length > 0) {
+      // Backend expects an array of keyword names
+      payload.keywords = data.keywords;
     }
 
     const response = await apiClient.post<Dog>(API_CONFIG.ENDPOINTS.DOGS, payload);
@@ -90,7 +100,7 @@ const dogService = {
    */
   updateDogImage: async (id: number, imageUri: string): Promise<Dog> => {
     const formData = new FormData();
-    formData.append('image', {
+    formData.append('file', {
       uri: imageUri,
       type: 'image/jpeg',
       name: 'dog.jpg',

@@ -6,8 +6,8 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (credentials: LoginCredentials) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
+  login: (credentials: LoginCredentials) => Promise<User>;
+  register: (data: RegisterData) => Promise<User>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -31,32 +31,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const authenticated = await checkAuth();
       if (authenticated) {
-        const userData = await authService.getMe();
-        setUser(userData);
+        try {
+          const userData = await authService.getMe();
+          console.log('AuthContext.checkAuthStatus - fetched user:', userData);
+          setUser(userData);
+        } catch (getMeError) {
+          console.log('Erreur lors de la récupération des données utilisateur:', getMeError);
+          // Si getMe échoue, c'est que le token est invalide ou qu'il y a un problème serveur
+          setUser(null);
+          await authService.logout();
+        }
       }
     } catch (error) {
-      console.log('Utilisateur non authentifié');
+      console.log('Utilisateur non authentifié ou token invalide');
       setUser(null);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const login = async (credentials: LoginCredentials) => {
+  const login = async (credentials: LoginCredentials): Promise<User> => {
     setIsLoading(true);
     try {
       const userData = await authService.login(credentials);
+      console.log('AuthContext.login - user after login:', userData);
       setUser(userData);
+      return userData;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const register = async (data: RegisterData) => {
+  const register = async (data: RegisterData): Promise<User> => {
     setIsLoading(true);
     try {
       const userData = await authService.register(data);
+      console.log('AuthContext.register - user after register:', userData);
       setUser(userData);
+      return userData;
     } finally {
       setIsLoading(false);
     }
@@ -75,9 +87,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const refreshUser = async () => {
     try {
       const userData = await authService.getMe();
+      console.log('AuthContext.refreshUser - refreshed user:', userData);
       setUser(userData);
     } catch (error) {
-      console.error('Erreur lors du rafraîchissement des données utilisateur:', error);
+      console.log('Erreur refresh user - token probablement invalide');
+      // Si le refresh échoue, déconnecter l'utilisateur
+      setUser(null);
+      await authService.logout();
     }
   };
 

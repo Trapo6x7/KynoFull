@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import Animated, {
 import { router } from 'expo-router';
 import { useFonts, Manrope_400Regular, Manrope_500Medium, Manrope_600SemiBold, Manrope_700Bold } from '@expo-google-fonts/manrope';
 import Colors from '@/src/constants/colors';
+import { useAuth } from '@/src/context/AuthContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -26,73 +27,48 @@ const { width, height } = Dimensions.get('window');
 const PHASE1_DURATION = 1500; // Loader 1 affiché
 const ZOOM_DURATION = 800;    // Transition zoom (phase 1 -> 2)
 const PHASE2_DURATION = 1000; // Loader 2 affiché
-const SLIDE_DURATION = 600;   // Transition slide (phase 2 -> 3)
-const FADE_DURATION = 400;    // Fade in des éléments
+const SLIDE_DURATION = 600;   // Transition slide (welcome)
+const FADE_DURATION = 400;    // Fade in des éléments (welcome)
 
-interface SplashScreenProps {
-  onFinish?: () => void;
-}
-
-export default function SplashScreen({ onFinish }: SplashScreenProps) {
-  const [phase, setPhase] = useState<1 | 2 | 3>(1);
-  
-  // Charger la police Manrope
+export default function SplashScreen({ onFinish }: { onFinish?: () => void }) {
+  const { user } = useAuth();
   const [fontsLoaded] = useFonts({
     Manrope_400Regular,
     Manrope_500Medium,
     Manrope_600SemiBold,
     Manrope_700Bold,
   });
-  
-  // Valeurs d'animation communes (illustration + logo zooment ensemble)
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  // Splash animation
   const zoomScale = useSharedValue(1);
-  
-  // Animation spécifique à l'illustration (phase 3)
+
+  // Welcome animation
   const illustrationTranslateY = useSharedValue(0);
-  const illustrationScale = useSharedValue(1);
-  
-  // Animation spécifique au logo texte (phase 3: translate vers le haut + scale down)
+  const illustrationScale = useSharedValue(1.4);
   const textLogoTranslateY = useSharedValue(0);
-  const textLogoScale = useSharedValue(1);
-  
-  // Animation du contenu phase 3
+  const textLogoScale = useSharedValue(1.4);
   const contentOpacity = useSharedValue(0);
   const buttonsTranslateY = useSharedValue(50);
-  
+
+  const startedRef = useRef(false);
+
   useEffect(() => {
-    // Phase 1 -> Phase 2 : Zoom sur l'illustration ET le logo ensemble (sans dézoom)
+    if (startedRef.current) return; // prevent double start (dev/mount quirks)
+    startedRef.current = true;
+    // Splash zoom
     const timer1 = setTimeout(() => {
-      zoomScale.value = withTiming(1.4, { 
+      zoomScale.value = withTiming(1.4, {
         duration: ZOOM_DURATION,
         easing: Easing.inOut(Easing.ease),
       });
-      
-      setTimeout(() => {
-        runOnJS(setPhase)(2);
-        // Pas de dézoom, on reste à 1.4
-      }, ZOOM_DURATION);
     }, PHASE1_DURATION);
-    
-    // Phase 2 -> Phase 3 : Tout se recentre, le logo monte au-dessus de l'illustration
+
+    // Après splash, lancer welcome
+    let finishTimer: any;
     const timer2 = setTimeout(() => {
-      // Léger dézoom mais on reste assez grand
-      zoomScale.value = withTiming(1.25, {
-        duration: SLIDE_DURATION,
-        easing: Easing.out(Easing.ease),
-      });
-      
-      // Le logo texte translate vers le haut (doit passer AU-DESSUS de l'illustration)
-      // Il part du bas de l'illustration, donc doit monter beaucoup plus
-      textLogoTranslateY.value = withTiming(-(width * 0.5 + 140), {
-        duration: SLIDE_DURATION,
-        easing: Easing.out(Easing.ease),
-      });
-      textLogoScale.value = withTiming(0.85, {
-        duration: SLIDE_DURATION,
-        easing: Easing.out(Easing.ease),
-      });
-      
-      // L'illustration monte légèrement
+      setShowWelcome(true);
+      // Welcome animation
       illustrationScale.value = withTiming(1.2, {
         duration: SLIDE_DURATION,
         easing: Easing.out(Easing.ease),
@@ -101,71 +77,82 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
         duration: SLIDE_DURATION,
         easing: Easing.out(Easing.ease),
       });
-      
-      // Changer la phase après le début de l'animation
-      setTimeout(() => {
-        runOnJS(setPhase)(3);
-      }, SLIDE_DURATION * 0.3);
-      
-      // Fade in du contenu
-      contentOpacity.value = withDelay(SLIDE_DURATION * 0.4, 
+      textLogoTranslateY.value = withTiming(-(width * 0.5 + 140), {
+        duration: SLIDE_DURATION,
+        easing: Easing.out(Easing.ease),
+      });
+      textLogoScale.value = withTiming(0.85, {
+        duration: SLIDE_DURATION,
+        easing: Easing.out(Easing.ease),
+      });
+      contentOpacity.value = withDelay(SLIDE_DURATION * 0.4,
         withTiming(1, { duration: FADE_DURATION })
       );
-      
-      // Animation des boutons
       buttonsTranslateY.value = withDelay(SLIDE_DURATION * 0.4,
-        withTiming(0, { 
+        withTiming(0, {
           duration: FADE_DURATION,
           easing: Easing.out(Easing.back(1.5)),
         })
       );
+      // Notify parent that splash/welcome sequence finished (once)
+      finishTimer = setTimeout(() => {
+        try {
+          onFinish && onFinish();
+        } catch (e) {
+          // ignore
+        }
+      }, SLIDE_DURATION + FADE_DURATION + 50);
     }, PHASE1_DURATION + ZOOM_DURATION + PHASE2_DURATION);
-    
+
     return () => {
       clearTimeout(timer1);
       clearTimeout(timer2);
+      if (typeof finishTimer !== 'undefined') clearTimeout(finishTimer);
     };
   }, []);
-  
-  // Style animé pour le conteneur centré (zoom phases 1-2, puis dézoom phase 3)
-  const centerAnimatedStyle = useAnimatedStyle(() => ({
+
+  // Splash style
+  const splashAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: zoomScale.value }],
   }));
-  
-  // Style animé pour l'illustration (scale + translation en phase 3)
+  // Welcome styles
   const illustrationAnimatedStyle = useAnimatedStyle(() => ({
     transform: [
-      { scale: illustrationScale.value },
-      { translateY: illustrationTranslateY.value },
+      { scale: showWelcome ? illustrationScale.value : zoomScale.value },
+      { translateY: showWelcome ? illustrationTranslateY.value : 0 },
     ],
   }));
-  
-  // Style animé pour le logo texte (translate vers le haut + scale down en phase 3)
   const textLogoAnimatedStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateY: textLogoTranslateY.value },
-      { scale: textLogoScale.value },
+      { translateY: showWelcome ? textLogoTranslateY.value : 0 },
+      { scale: showWelcome ? textLogoScale.value : zoomScale.value },
     ],
   }));
-  
-  // Style animé pour le contenu
   const contentAnimatedStyle = useAnimatedStyle(() => ({
     opacity: contentOpacity.value,
     transform: [{ translateY: buttonsTranslateY.value }],
   }));
-  
+
   const handleLogin = () => {
-    router.push('/(auth)/login');
+    // Vérifier le statut de l'utilisateur avant de rediriger
+    if (user) {
+      if (!user.is_complete) {
+        router.replace('/(onboarding)/your-detail');
+      } else if (!user.isVerified) {
+        router.replace('/(onboarding)/verify-email');
+      } else {
+        router.replace('/(tabs)/explore');
+      }
+    } else {
+      router.push('/(auth)/login');
+    }
   };
-  
   const handleRegister = () => {
     router.push('/(auth)/register');
   };
 
-  if (!fontsLoaded) {
-    return null;
-  }
-  
+  if (!fontsLoaded) return null;
+
   return (
     <View style={styles.container}>
       <ImageBackground
@@ -173,8 +160,7 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
         style={styles.background}
         resizeMode="cover"
       >
-        {/* Conteneur centré pour logo + illustration (toutes les phases) */}
-        <Animated.View style={[styles.centerContainer, centerAnimatedStyle]}>
+        <View style={styles.centerContainer}>
           {/* Illustration */}
           <Animated.View style={[styles.logoContainer, illustrationAnimatedStyle]}>
             <Image
@@ -183,8 +169,7 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
               resizeMode="contain"
             />
           </Animated.View>
-          
-          {/* Logo KYNO texte - en dessous de l'illustration */}
+          {/* Logo texte */}
           <Animated.View style={[styles.textLogoContainer, textLogoAnimatedStyle]}>
             <Image
               source={require('@/assets/images/kynologo.png')}
@@ -192,36 +177,29 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
               resizeMode="contain"
             />
           </Animated.View>
-        </Animated.View>
-        
-        {/* Contenu Phase 3 */}
-        {phase === 3 && (
+        </View>
+        {/* Welcome content */}
+        {showWelcome && (
           <Animated.View style={[styles.contentContainer, contentAnimatedStyle]}>
-            {/* Titre */}
             <Text style={styles.title}>
               Rencontre & <Text style={styles.titleAccent}>Joue</Text>
             </Text>
-            
-            {/* Description */}
             <Text style={styles.description}>
-              Kyno est une application qui met en relation chiens et propriétaires 
-              pour organiser des sorties, des playdates ou des rencontres de 
-              reproduction, en proposant des profils chiens détaillés, un 
-              matching par race/âge/comportement et des outils de sécurité 
+              Kyno est une application qui met en relation chiens et propriétaires
+              pour organiser des sorties, des playdates ou des rencontres de
+              reproduction, en proposant des profils chiens détaillés, un
+              matching par race/âge/comportement et des outils de sécurité
               pour les propriétaires.
             </Text>
-            
-            {/* Boutons */}
             <View style={styles.buttonsContainer}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.buttonPrimary}
                 onPress={handleLogin}
                 activeOpacity={0.8}
               >
                 <Text style={styles.buttonPrimaryText}>SE CONNECTER</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.buttonSecondary}
                 onPress={handleRegister}
                 activeOpacity={0.8}
@@ -247,7 +225,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // Conteneur pour centrer les deux éléments ensemble (flex column)
   centerContainer: {
     alignItems: 'center',
     justifyContent: 'center',

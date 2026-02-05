@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFonts, Manrope_400Regular, Manrope_500Medium, Manrope_600SemiBold } from '@expo-google-fonts/manrope';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/src/constants/colors';
@@ -24,6 +25,17 @@ const GENRE_OPTIONS = [
   { label: 'Femelle', value: 'female' },
 ];
 
+const SIZE_OPTIONS = [
+  { label: 'Petit', value: 'small' },
+  { label: 'Moyen', value: 'medium' },
+  { label: 'Grand', value: 'large' },
+];
+
+const AGE_OPTIONS = Array.from({ length: 21 }, (_, i) => ({
+  label: i === 0 ? 'Moins d\'1 an' : `${i} an${i > 1 ? 's' : ''}`,
+  value: i.toString(),
+}));
+
 export default function PetDetailScreen() {
   const [name, setName] = useState('');
   const [raceId, setRaceId] = useState<number | null>(null);
@@ -31,10 +43,12 @@ export default function PetDetailScreen() {
   const [loadingRaces, setLoadingRaces] = useState(true);
   const [genre, setGenre] = useState('');
   const [taille, setTaille] = useState('');
+  const [showSizePicker, setShowSizePicker] = useState(false);
   const [age, setAge] = useState('');
   const [description, setDescription] = useState('');
   const [showGenrePicker, setShowGenrePicker] = useState(false);
   const [showRacePicker, setShowRacePicker] = useState(false);
+  const [showAgePicker, setShowAgePicker] = useState(false);
 
   const [fontsLoaded] = useFonts({
     Manrope_400Regular,
@@ -61,7 +75,25 @@ export default function PetDetailScreen() {
   if (!fontsLoaded) return null;
 
   const handleNext = () => {
-    router.push('/(onboarding)/pet-images');
+    (async () => {
+      try {
+        const stored = await AsyncStorage.getItem('onboarding');
+        const onboarding = stored ? JSON.parse(stored) : {};
+        onboarding.pet = {
+          name,
+          raceId,
+          genre,
+          taille,
+          age,
+          description,
+        };
+        await AsyncStorage.setItem('onboarding', JSON.stringify(onboarding));
+      } catch (e) {
+        console.error('Erreur sauvegarde onboarding (pet-detail):', e);
+      } finally {
+        router.push('/(onboarding)/pet-images');
+      }
+    })();
   };
 
   const getGenreLabel = () => {
@@ -69,10 +101,20 @@ export default function PetDetailScreen() {
     return option ? option.label : 'Sélectionnez un genre';
   };
 
+  const getTailleLabel = () => {
+    const option = SIZE_OPTIONS.find(opt => opt.value === taille);
+    return option ? option.label : 'Sélectionnez une taille';
+  };
+
   const getRaceLabel = () => {
     if (!races || races.length === 0) return 'Sélectionnez une race';
     const selectedRace = races.find(r => r.id === raceId);
     return selectedRace ? selectedRace.name : 'Sélectionnez une race';
+  };
+
+  const getAgeLabel = () => {
+    const option = AGE_OPTIONS.find(opt => opt.value === age);
+    return option ? option.label : 'Sélectionnez un âge';
   };
 
   return (
@@ -139,26 +181,29 @@ export default function PetDetailScreen() {
         {/* Taille */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Taille</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Taille"
-            placeholderTextColor={Colors.gray}
-            value={taille}
-            onChangeText={setTaille}
-          />
+          <TouchableOpacity
+            style={styles.pickerButton}
+            onPress={() => setShowSizePicker(true)}
+          >
+            <Text style={[styles.pickerButtonText, !taille && styles.placeholderText]}>
+              {getTailleLabel()}
+            </Text>
+            <Ionicons name="chevron-down" size={20} color={Colors.gray} />
+          </TouchableOpacity>
         </View>
 
         {/* Age */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Age</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Age"
-            placeholderTextColor={Colors.gray}
-            value={age}
-            onChangeText={setAge}
-            keyboardType="numeric"
-          />
+          <TouchableOpacity
+            style={styles.pickerButton}
+            onPress={() => setShowAgePicker(true)}
+          >
+            <Text style={[styles.pickerButtonText, !age && styles.placeholderText]}>
+              {getAgeLabel()}
+            </Text>
+            <Ionicons name="chevron-down" size={20} color={Colors.gray} />
+          </TouchableOpacity>
         </View>
 
         {/* Description */}
@@ -237,7 +282,9 @@ export default function PetDetailScreen() {
           <View style={[styles.modalContent, { maxHeight: '70%' }]}>
             <Text style={styles.modalTitle}>Sélectionnez une race</Text>
             <ScrollView showsVerticalScrollIndicator={false}>
-              {races && races.length > 0 ? (
+              {loadingRaces ? (
+                <Text style={styles.placeholderText}>Chargement des races...</Text>
+              ) : races && races.length > 0 ? (
                 races.map((race) => (
                   <TouchableOpacity
                     key={race.id}
@@ -259,8 +306,86 @@ export default function PetDetailScreen() {
                   </TouchableOpacity>
                 ))
               ) : (
-                <Text style={styles.placeholderText}>Chargement des races...</Text>
+                <Text style={styles.placeholderText}>Aucune race trouvée.</Text>
               )}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Modal Size Picker */}
+      <Modal
+        visible={showSizePicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSizePicker(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowSizePicker(false)}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Sélectionnez la taille</Text>
+            {SIZE_OPTIONS.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={[
+                  styles.modalOption,
+                  taille === option.value && styles.modalOptionSelected,
+                ]}
+                onPress={() => {
+                  setTaille(option.value);
+                  setShowSizePicker(false);
+                }}
+              >
+                <Text style={[
+                  styles.modalOptionText,
+                  taille === option.value && styles.modalOptionTextSelected,
+                ]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Modal Age Picker */}
+      <Modal
+        visible={showAgePicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowAgePicker(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowAgePicker(false)}
+        >
+          <View style={[styles.modalContent, { maxHeight: '70%' }]}>
+            <Text style={styles.modalTitle}>Sélectionnez l'âge</Text>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {AGE_OPTIONS.map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.modalOption,
+                    age === option.value && styles.modalOptionSelected,
+                  ]}
+                  onPress={() => {
+                    setAge(option.value);
+                    setShowAgePicker(false);
+                  }}
+                >
+                  <Text style={[
+                    styles.modalOptionText,
+                    age === option.value && styles.modalOptionTextSelected,
+                  ]}>
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </ScrollView>
           </View>
         </TouchableOpacity>

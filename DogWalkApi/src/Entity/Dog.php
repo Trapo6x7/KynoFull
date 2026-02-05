@@ -20,6 +20,7 @@ use Doctrine\DBAL\Types\Types;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Annotation\SerializedName;
 
 
 #[ORM\Entity(repositoryClass: DogRepository::class)]
@@ -51,6 +52,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
             securityMessage: "Vous ne pouvez supprimer que vos propres chiens"
         ),
         new Post(
+            name: 'dog_image_post',
             uriTemplate: '/dogs/{id}/image',
             denormalizationContext: ['groups' => ['dog:image']],
             validationContext: ['groups' => ['Default']],
@@ -96,9 +98,9 @@ class Dog
     #[Groups(['me:read', 'dog:read'])]
     private ?User $user = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['dog:read', 'me:read', 'user:read'])]
-    private ?string $imageFilename = null;
+    #[ORM\Column(type: 'json', nullable: true)]
+    #[Groups(['dog:read', 'dog:image'])]
+    private ?array $images = null;
 
     #[Groups(['dog:image'])]
     public ?UploadedFile $file = null;
@@ -119,15 +121,17 @@ class Dog
 
     /**
      * Liste des keywords sérialisée pour l'API (non persistée en base)
-     * @var Keyword[]|null
+     * Contient les noms des keywords sous forme de strings
+     * @var string[]|null
      */
-    #[Groups(['dog:read', 'dog:write', 'me:read', 'user:read'])]
+    #[Groups(['dog:read', 'me:read', 'user:read'])]
     private ?array $keywords = null;
 
     public function __construct()
     {
         $this->race = new ArrayCollection();
         $this->keywordables = new ArrayCollection();
+        $this->images = [];
     }
 
     public function getId(): ?int
@@ -183,15 +187,22 @@ class Dog
         return $this;
     }
 
-    public function getImageFilename(): ?string
+    public function getImages(): ?array
     {
-        return $this->imageFilename;
+        return $this->images;
     }
 
-    public function setImageFilename(?string $imageFilename): static
+    public function setImages(?array $images): static
     {
-        $this->imageFilename = $imageFilename;
+        $this->images = $images;
         return $this;
+    }
+
+    #[Groups(['me:read','dog:read'])]
+    #[SerializedName('images')]
+    public function getImagesForSerialization(): array
+    {
+        return $this->images ?? [];
     }
 
     /**
@@ -241,9 +252,9 @@ class Dog
     }
 
     /**
-     * Récupère les keywords (à utiliser avec KeywordService pour les charger)
+     * Récupère les keywords (chargés automatiquement par KeywordableNormalizer)
      * 
-     * @return Keyword[]|null
+     * @return string[]|null Tableau de noms de keywords
      */
     public function getKeywords(): ?array
     {
@@ -253,7 +264,7 @@ class Dog
     /**
      * Définit les keywords (utilisé par le serializer et les data persisters)
      * 
-     * @param Keyword[]|null $keywords
+     * @param string[]|null $keywords Tableau de noms de keywords
      */
     public function setKeywords(?array $keywords): static
     {

@@ -33,6 +33,24 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         $this->getEntityManager()->flush();
     }
 
+    /**
+     * Récupère la liste des professions distinctes et non nulles
+     * @return string[]
+     */
+    public function findDistinctProfessions(): array
+    {
+        $result = $this->createQueryBuilder('u')
+            ->select('DISTINCT u.profession')
+            ->where('u.profession IS NOT NULL')
+            ->andWhere('u.profession != :empty')
+            ->setParameter('empty', '')
+            ->orderBy('u.profession', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return array_column($result, 'profession');
+    }
+
 //    /**
 //     * @return User[] Returns an array of User objects
 //     */

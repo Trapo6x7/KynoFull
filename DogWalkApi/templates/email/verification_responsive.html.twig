@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vérification Email - Kyno</title>
+    <!--[if mso]>
+    <style type="text/css">
+        body, table, td {font-family: Arial, Helvetica, sans-serif !important;}
+    </style>
+    <![endif]-->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #FFF0F3;
+            padding: 0;
+            margin: 0;
+            width: 100% !important;
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+        table {
+            border-collapse: collapse;
+            mso-table-lspace: 0pt;
+            mso-table-rspace: 0pt;
+        }
+        img {
+            border: 0;
+            height: auto;
+            line-height: 100%;
+            outline: none;
+            text-decoration: none;
+            -ms-interpolation-mode: bicubic;
+        }
+        .email-wrapper {
+            width: 100%;
+            background-color: #FFF0F3;
+            padding: 20px 0;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #FFFFFF;
+            border-radius: 30px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(244, 143, 177, 0.2);
+        }
+        .header {
+            background-color: #f2cee1;
+            padding: 30px 30px 20px;
+            text-align: center;
+        }
+        .illustration {
+            max-width: 200px;
+            height: auto;
+            margin: 0 auto 20px;
+            display: block;
+        }
+        .header h1 {
+            color: #000000;
+            font-size: 26px;
+            font-weight: 600;
+            margin: 0;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .greeting {
+            font-size: 20px;
+            color: #000000;
+            margin-bottom: 15px;
+            font-weight: 600;
+            text-align: center;
+        }
+        .message {
+            font-size: 15px;
+            color: #424242;
+            line-height: 1.7;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        .code-container {
+            background-color: #FFF0F3;
+            border: 3px solid #f2cee1;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            margin: 30px 0;
+        }
+        .code-label {
+            font-size: 13px;
+            color: #9E9E9E;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 600;
+        }
+        .code {
+            font-size: 48px;
+            font-weight: 700;
+            color: #E91E8C;
+            letter-spacing: 10px;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 15px 0;
+        }
+        .expiry {
+            font-size: 13px;
+            color: #9E9E9E;
+            margin-top: 15px;
+        }
+        .info-box {
+            background-color: #FFF0F3;
+            border-left: 4px solid #F48FB1;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 12px;
+        }
+        .info-box p {
+            font-size: 14px;
+            color: #424242;
+            margin: 0;
+            line-height: 1.6;
+        }
+        .cta-text {
+            text-align: center;
+            font-weight: 600;
+            font-size: 16px;
+            color: #000000;
+            margin: 25px 0;
+        }
+        .footer {
+            background-color: #FFF0F3;
+            padding: 25px 30px;
+            text-align: center;
+            border-top: 2px solid #FCE4EC;
+        }
+        .footer-text {
+            font-size: 13px;
+            color: #9E9E9E;
+            line-height: 1.6;
+            margin: 8px 0;
+        }
+        .footer-brand {
+            font-weight: 600;
+            color: #000000;
+            font-size: 15px;
+            margin-bottom: 5px;
+        }
+        .divider {
+            height: 2px;
+            background-color: #FCE4EC;
+            margin: 20px 0;
+        }
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                border-radius: 0 !important;
+                margin: 0 !important;
+            }
+            .content {
+                padding: 30px 20px !important;
+            }
+            .code {
+                font-size: 40px !important;
+                letter-spacing: 6px !important;
+            }
+            .header h1 {
+                font-size: 22px !important;
+            }
+            .illustration {
+                max-width: 150px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <table role="presentation" class="email-wrapper" width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+            <td align="center" style="padding: 20px 10px;">
+                <table role="presentation" class="email-container" width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #FFFFFF; border-radius: 30px;">
+                    <!-- Header -->
+                    <tr>
+                        <td class="header" style="background-color: #f2cee1; padding: 30px 30px 20px; text-align: center;">
+                            <img src="{{ app.request.schemeAndHttpHost }}/img/kynologo.png" alt="Chien illustration" class="illustration" style="max-width: 200px; height: auto; display: block; margin: 0 auto 20px;">
+                            <h1 style="color: #000000; font-size: 26px; font-weight: 600; margin: 0;">Bienvenue sur Kyno !</h1>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td class="content" style="padding: 40px 30px;">
+                            
+                            <p class="greeting">Woof !</p>
+                            
+                            <p class="message">
+                                Merci de rejoindre la communauté Kyno ! Nous sommes ravis de t'accueillir parmi nous.
+                                Pour commencer ton aventure et rencontrer d'autres passionnés de chiens, vérifie ton adresse email.
+                            </p>
+
+                            <!-- Code de vérification -->
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td>
+                                        <div class="code-container">
+                                            <div class="code-label">Ton code de vérification</div>
+                                            <div class="code">{{ verificationCode }}</div>
+                                            <div class="expiry">Valable 24 heures</div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p class="message">
+                                Entre simplement ce code dans l'app pour activer ton compte et commencer à explorer !
+                            </p>
+
+                            <div class="info-box">
+                                <p>
+                                    <strong>Sécurité :</strong> Tu n'as pas créé de compte Kyno ? Ignore simplement cet email.
+                                </p>
+                            </div>
+
+                            <p class="cta-text">
+                                Prêt à partir en balade ?
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td class="footer" style="background-color: #FFF0F3; padding: 25px 30px; text-align: center; border-top: 2px solid #FCE4EC;">
+                            <p class="footer-brand">L'équipe Kyno</p>
+                            <p class="footer-text">Ton app de rencontres canines</p>
+                            
+                            <div class="divider"></div>
+                            
+                            <p class="footer-text">
+                                © {{ "now"|date("Y") }} Kyno - Tous droits réservés<br>
+                                Des questions ? Contacte-nous à support@kyno.app
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

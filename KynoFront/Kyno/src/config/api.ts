@@ -43,7 +43,7 @@ export const API_CONFIG = {
     // Keywords
     KEYWORDS: '/api/keywords',
   },
-  TIMEOUT: 10000, // 10 secondes
+  TIMEOUT: 30000, // 30 secondes
 };
 
 export default API_CONFIG;

@@ -49,7 +49,9 @@ class DogImageDataPersister implements ProcessorInterface
         $filename = uniqid().'.'.$uploadedFile->guessExtension();
         $uploadedFile->move($this->uploadsDir, $filename);
 
-        $dog->setImageFilename($filename);
+        $images = $dog->getImages() ?? [];
+        $images[] = $filename;
+        $dog->setImages($images);
         $this->entityManager->flush();
 
         return $dog;

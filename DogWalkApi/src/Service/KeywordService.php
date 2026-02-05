@@ -73,7 +73,7 @@ class KeywordService
     /**
      * Synchronise les keywords d'une entité (remplace tous les keywords existants)
      * 
-     * @param Keyword[] $keywords
+     * @param Keyword[]|string[] $keywords Tableau d'objets Keyword ou de noms de keywords
      */
     public function syncKeywords(string $type, int $id, array $keywords): void
     {
@@ -82,7 +82,16 @@ class KeywordService
 
         // Ajoute les nouvelles associations
         foreach ($keywords as $keyword) {
-            $this->addKeyword($type, $id, $keyword);
+            // Si c'est une string, récupérer l'objet Keyword par son nom
+            if (is_string($keyword)) {
+                $keywordEntity = $this->entityManager->getRepository(Keyword::class)
+                    ->findOneBy(['name' => $keyword]);
+                if ($keywordEntity) {
+                    $this->addKeyword($type, $id, $keywordEntity);
+                }
+            } elseif ($keyword instanceof Keyword) {
+                $this->addKeyword($type, $id, $keyword);
+            }
         }
     }
 }

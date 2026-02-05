@@ -17,6 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import Colors from '@/src/constants/colors';
 import ImagePlaceholder from '@/src/components/ImagePlaceholder';
 import keywordService, { Keyword } from '@/src/services/keywordService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 const IMAGE_SIZE = (width - 80) / 3;
@@ -85,8 +86,12 @@ export default function YourImagesScreen() {
   if (!fontsLoaded) return null;
 
   const pickImage = async (index: number) => {
+    const mediaTypes = (ImagePicker as any).MediaType?.Images
+      ?? (ImagePicker as any).MediaTypeOptions?.Images
+      ?? 'Images';
+
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes,
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -112,7 +117,20 @@ export default function YourImagesScreen() {
   };
 
   const handleNext = () => {
-    router.push('/(onboarding)/pet-detail');
+    // Save user images and keywords to onboarding storage
+    (async () => {
+      try {
+        const stored = await AsyncStorage.getItem('onboarding');
+        const onboarding = stored ? JSON.parse(stored) : {};
+        onboarding.userImages = images.filter(Boolean);
+        onboarding.userKeywords = selectedKeywords;
+        await AsyncStorage.setItem('onboarding', JSON.stringify(onboarding));
+      } catch (e) {
+        console.error('Erreur sauvegarde onboarding (your-images):', e);
+      } finally {
+        router.push('/(onboarding)/pet-detail');
+      }
+    })();
   };
 
   return (

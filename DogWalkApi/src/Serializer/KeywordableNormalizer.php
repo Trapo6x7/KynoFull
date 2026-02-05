@@ -37,8 +37,18 @@ class KeywordableNormalizer implements NormalizerInterface, NormalizerAwareInter
         $id = $object->getId();
 
         if ($id !== null) {
-            $keywords = $this->keywordService->getKeywords($type, $id);
-            $object->setKeywords($keywords);
+            try {
+                $keywords = $this->keywordService->getKeywords($type, $id);
+                // Convertir les objets Keyword en tableau de noms
+                $keywordNames = array_map(fn($keyword) => $keyword->getName(), $keywords ?? []);
+                $object->setKeywords($keywordNames);
+            } catch (\Exception $e) {
+                // En cas d'erreur, initialiser avec un tableau vide
+                $object->setKeywords([]);
+            }
+        } else {
+            // Si pas d'ID, initialiser avec un tableau vide
+            $object->setKeywords([]);
         }
 
         return $this->normalizer->normalize($object, $format, $context);

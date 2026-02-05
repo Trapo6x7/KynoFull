@@ -12,10 +12,17 @@ export interface RegisterData {
   password: string;
   name: string;
   birthdate: string;
-  city: string;
+  phone?: string;
+}
+
+export interface UpdateUserData {
+  description?: string;
+  gender?: string;
+  profession?: string;
   latitude?: string;
   longitude?: string;
-  phone?: string;
+  city?: string;
+  keywords?: string[];
 }
 
 export interface AuthResponse {
@@ -32,6 +39,8 @@ export interface User {
   roles: string[];
   createdAt: string;
   dogs?: Dog[];
+  is_complete?: boolean;
+  isVerified?: boolean; // Statut de vérification de l'email
 }
 
 export interface Dog {
@@ -67,6 +76,9 @@ const authService = {
     console.log('Sending to:', API_CONFIG.ENDPOINTS.LOGIN);
     
     try {
+      // Supprimer l'ancien token avant le login
+      await removeToken();
+      
       const response = await apiClient.post<AuthResponse>(
         API_CONFIG.ENDPOINTS.LOGIN,
         {
@@ -79,6 +91,10 @@ const authService = {
 
       // Stocker le token
       await setToken(response.data.token);
+      console.log('Token saved');
+
+      // Petit délai pour s'assurer que le token est bien sauvegardé
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Récupérer les infos de l'utilisateur
       const user = await authService.getMe();
@@ -109,8 +125,17 @@ const authService = {
    * Récupérer les informations de l'utilisateur connecté
    */
   getMe: async (): Promise<User> => {
-    const response = await apiClient.get<User>(API_CONFIG.ENDPOINTS.ME);
-    return response.data;
+    console.log('=== GETME ATTEMPT ===');
+    try {
+      const response = await apiClient.get<User>(API_CONFIG.ENDPOINTS.ME);
+      console.log('GetMe success:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.log('=== GETME ERROR ===');
+      console.log('Status:', error.response?.status);
+      console.log('Data:', error.response?.data);
+      throw error;
+    }
   },
 
   /**
@@ -131,11 +156,27 @@ const authService = {
   },
 
   /**
+   * Mise à jour des données utilisateur
+   */
+  updateUser: async (userId: number, data: UpdateUserData): Promise<User> => {
+    const response = await apiClient.patch<User>(
+      `${API_CONFIG.ENDPOINTS.USERS}/${userId}`,
+      data,
+      {
+        headers: {
+          'Content-Type': 'application/merge-patch+json',
+        },
+      }
+    );
+    return response.data;
+  },
+
+  /**
    * Mise à jour de la photo de profil
    */
   updateProfileImage: async (imageUri: string): Promise<User> => {
     const formData = new FormData();
-    formData.append('image', {
+    formData.append('file', {
       uri: imageUri,
       type: 'image/jpeg',
       name: 'profile.jpg',

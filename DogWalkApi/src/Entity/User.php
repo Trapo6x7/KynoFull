@@ -18,6 +18,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Serializer\Annotation\SerializedName;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -65,6 +66,7 @@ use App\Dto\UserPasswordUpdateDto;
             processor: UserPasswordChangeDataPersister::class
         ),
         new Post(
+            name: 'user_image_post',
             uriTemplate: '/users/image',
             denormalizationContext: ['groups' => ['user:image']],
             security: "is_granted('ROLE_USER')",
@@ -77,6 +79,27 @@ use App\Dto\UserPasswordUpdateDto;
 )]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    #[Groups(['me:read', 'user:read'])]
+    private bool $is_complete = false;
+
+    public function isComplete(): bool
+    {
+        return $this->is_complete;
+    }
+
+    #[Groups(['me:read', 'user:read'])]
+    #[SerializedName('is_complete')]
+    public function getIsCompleteForSerialization(): bool
+    {
+        return $this->is_complete;
+    }
+
+    public function setIsComplete(bool $is_complete): static
+    {
+        $this->is_complete = $is_complete;
+        return $this;
+    }
     /**
      * @var Collection<int, Group>
      */
@@ -169,6 +192,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private ?bool $isVerified = false;
 
+    #[ORM\Column(length: 6, nullable: true)]
+    private ?string $verificationCode = null;
+
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $verificationCodeExpiresAt = null;
+
     #[ORM\Column]
     #[Groups(['me:read'])]
     private ?int $score = 0;
@@ -182,9 +211,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $deletedAt;
 
-    #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['user:write', 'me:read', 'user:read', 'user:image'])]
-    private ?string $imageFilename = null;
+    #[ORM\Column(type: 'json', nullable: true)]
+    #[Groups(['user:write', 'user:image'])]
+    private ?array $images = null;
 
     #[Groups(['user:write', 'me:read'])]
     public ?UploadedFile $file = null;
@@ -220,9 +249,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['pass:patch'])]
     private ?string $oldPassword = null;
 
-    #[Assert\NotBlank]
     #[Assert\Length(min: 2)]
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['user:write', 'me:read', 'user:patch'])]
     private ?string $city = null;
 
@@ -235,9 +263,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     /**
      * Liste des keywords sérialisée pour l'API (non persistée en base)
-     * @var Keyword[]|null
+     * Contient les noms des keywords sous forme de strings
+     * @var string[]|null
      */
-    #[Groups(['me:read', 'user:read', 'user:write'])]
+    #[Groups(['me:read', 'user:read'])]
     private ?array $keywords = null;
 
     public function __construct(DateTimeImmutable $createdAt = new DateTimeImmutable(), DateTimeImmutable $updatedAt = new DateTimeImmutable())
@@ -250,6 +279,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->moderations = new ArrayCollection();
         $this->createdGroups = new ArrayCollection();
         $this->keywordables = new ArrayCollection();
+        $this->images = [];
     }
 
     public function getId(): ?int
@@ -364,6 +394,39 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    public function getVerificationCode(): ?string
+    {
+        return $this->verificationCode;
+    }
+
+    public function setVerificationCode(?string $verificationCode): static
+    {
+        $this->verificationCode = $verificationCode;
+
+        return $this;
+    }
+
+    public function getVerificationCodeExpiresAt(): ?\DateTimeImmutable
+    {
+        return $this->verificationCodeExpiresAt;
+    }
+
+    public function setVerificationCodeExpiresAt(?\DateTimeImmutable $verificationCodeExpiresAt): static
+    {
+        $this->verificationCodeExpiresAt = $verificationCodeExpiresAt;
+
+        return $this;
+    }
+
+    public function isVerificationCodeValid(): bool
+    {
+        if (!$this->verificationCode || !$this->verificationCodeExpiresAt) {
+            return false;
+        }
+
+        return $this->verificationCodeExpiresAt > new \DateTimeImmutable();
+    }
+
     public function getScore(): ?int
     {
         return $this->score;
@@ -412,15 +475,22 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function getImageFilename(): ?string
+    public function getImages(): ?array
     {
-        return $this->imageFilename;
+        return $this->images;
     }
 
-    public function setImageFilename(?string $imageFilename): static
+    public function setImages(?array $images): static
     {
-        $this->imageFilename = $imageFilename;
+        $this->images = $images;
         return $this;
+    }
+
+    #[Groups(['me:read', 'user:read'])]
+    #[SerializedName('images')]
+    public function getImagesForSerialization(): array
+    {
+        return $this->images ?? [];
     }
 
     /**
@@ -654,9 +724,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
-     * Récupère les keywords (à utiliser avec KeywordService pour les charger)
+     * Récupère les keywords (chargés automatiquement par KeywordableNormalizer)
      * 
-     * @return Keyword[]|null
+     * @return string[]|null Tableau de noms de keywords
      */
     public function getKeywords(): ?array
     {
@@ -666,7 +736,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * Définit les keywords (utilisé par le serializer et les data persisters)
      * 
-     * @param Keyword[]|null $keywords
+     * @param string[]|null $keywords Tableau de noms de keywords
      */
     public function setKeywords(?array $keywords): static
     {

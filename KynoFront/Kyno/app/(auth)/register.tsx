@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import * as Location from "expo-location";
 import { router } from "expo-router";
+import { Ionicons } from '@expo/vector-icons';
 import {
   useFonts,
   Manrope_400Regular,
@@ -24,13 +25,14 @@ import {
   Manrope_700Bold,
 } from "@expo-google-fonts/manrope";
 import { useAuth } from "@/src/context/AuthContext";
+import authService from "@/src/services/authService";
 import Colors from "@/src/constants/colors";
 import LoadingScreen from "@/src/screens/LoadingScreen";
 
 const { width } = Dimensions.get("window");
 
 export default function RegisterScreen() {
-  const { register, isLoading } = useAuth();
+  const { register, isLoading, user } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,9 +41,6 @@ export default function RegisterScreen() {
   const [day, setDay] = useState("");
   const [month, setMonth] = useState("");
   const [year, setYear] = useState("");
-  const [city, setCity] = useState("");
-  const [latitude, setLatitude] = useState<number | null>(null);
-  const [longitude, setLongitude] = useState<number | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showLoading, setShowLoading] = useState(false);
@@ -95,10 +94,6 @@ export default function RegisterScreen() {
       }
     }
 
-    if (!city.trim()) {
-      newErrors.city = "La ville est requise";
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -119,19 +114,18 @@ export default function RegisterScreen() {
 
     try {
       setShowLoading(true);
+      
       await register({
         email,
         password,
         name: firstName.trim(),
         birthdate: birthdate!.toISOString().split("T")[0],
-        city: city.trim(),
-        latitude: latitude?.toString(),
-        longitude: longitude?.toString(),
       });
-      // Attendre un peu pour montrer le loader puis aller à l'onboarding
+      
+      // Rediriger vers l'onboarding
       setTimeout(() => {
-        router.replace("/(onboarding)/pet-detail");
-      }, 1500);
+        router.replace("/(onboarding)/your-detail");
+      }, 500);
     } catch (error: any) {
       setShowLoading(false);
       console.log("=== ERREUR INSCRIPTION ===");
@@ -174,8 +168,15 @@ export default function RegisterScreen() {
       style={styles.container}
       resizeMode="cover"
     >
-      {/* Logo fixe en haut */}
+      {/* Bouton retour + Logo fixe en haut */}
       <View style={styles.headerContainer}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => step === 1 ? router.back() : handlePreviousStep()}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="arrow-back" size={24} color={Colors.black} />
+        </TouchableOpacity>
         <Image
           source={require("@/assets/images/kynologo.png")}
           style={styles.logo}
@@ -362,74 +363,14 @@ export default function RegisterScreen() {
                     )}
                   </View>
 
-                  <View style={styles.inputContainer}>
-                    <View style={styles.cityInputContainer}>
-                      <TextInput
-                        style={[
-                          styles.input,
-                          styles.cityInput,
-                          errors.city && styles.inputError,
-                        ]}
-                        placeholder="Ville"
-                        placeholderTextColor={Colors.gray}
-                        value={city}
-                        onChangeText={setCity}
-                        autoCapitalize="words"
-                      />
-                      <TouchableOpacity
-                        style={styles.locationButton}
-                        onPress={async () => {
-                          try {
-                            const { status } =
-                              await Location.requestForegroundPermissionsAsync();
-                            if (status !== "granted") {
-                              Alert.alert(
-                                "Permission refusée",
-                                "Autorisation de localisation requise",
-                              );
-                              return;
-                            }
-                            const location =
-                              await Location.getCurrentPositionAsync({});
-                            const [result] = await Location.reverseGeocodeAsync(
-                              {
-                                latitude: location.coords.latitude,
-                                longitude: location.coords.longitude,
-                              },
-                            );
-                            if (result?.city) {
-                              setCity(result.city);
-                              setLatitude(location.coords.latitude);
-                              setLongitude(location.coords.longitude);
-                            }
-                          } catch (error) {
-                            Alert.alert(
-                              "Erreur",
-                              "Impossible de récupérer la localisation",
-                            );
-                          }
-                        }}
-                      >
-                        <Image
-                          source={require("@/assets/images/localisation.png")}
-                          style={styles.locationIcon}
-                          resizeMode="contain"
-                        />
-                      </TouchableOpacity>
-                    </View>
-                    {errors.city && (
-                      <Text style={styles.errorText}>{errors.city}</Text>
-                    )}
-                  </View>
-
                   <View style={styles.buttonRow}>
-                    <TouchableOpacity
+                    {/* <TouchableOpacity
                       style={[styles.button, styles.buttonSecondary]}
                       onPress={handlePreviousStep}
                       activeOpacity={0.8}
                     >
                       <Text style={styles.buttonTextSecondary}>RETOUR</Text>
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
 
                     <TouchableOpacity
                       style={[
@@ -502,6 +443,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "transparent",
+    position: "relative",
+  },
+  backButton: {
+    position: "absolute",
+    left: 20,
+    top: 50,
+    zIndex: 10,
+    padding: 8,
   },
   logo: {
     width: width * 0.35,

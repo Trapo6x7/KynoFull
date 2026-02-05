@@ -29,20 +29,17 @@ class UserDataPersister implements ProcessorInterface
     {
         if (str_contains($operation->getName(), 'image_post')) {
             $request = $this->requestStack->getCurrentRequest();
-
             /** @var User $user */
             $user = $this->security->getUser();
-
             if ($user) {
                 if ($request && $request->files->has('file')) {
                     $file = $request->files->get('file');
-                    // dd($file);
-
                     if ($file) {
                         $fileName = $this->fileUploader->upload($file);
-                        $user->setImageFilename($fileName);
+                        $images = $user->getImages() ?? [];
+                        $images[] = $fileName;
+                        $user->setImages($images);
                         $user->setUpdatedAt(new \DateTimeImmutable());
-                        // dd($user);
                         $this->entityManager->flush();
                     }
                 }
@@ -52,8 +49,9 @@ class UserDataPersister implements ProcessorInterface
 
 
         if ($data instanceof User) {
-            // Récupère les keywords avant persist
-            $keywords = $data->getKeywords();
+            // Récupère les keywords depuis la requête HTTP (stockés par le listener)
+            $request = $this->requestStack->getCurrentRequest();
+            $keywords = $request?->attributes->get('_keywords') ?? $data->getKeywords();
 
             if ($data->getPassword()) {
                 // Vérifier si le mot de passe est déjà haché
@@ -62,12 +60,19 @@ class UserDataPersister implements ProcessorInterface
                     $data->setPassword($hashedPassword);
                 }
             }
+
+            // Générer un code de vérification à 6 chiffres
+            if (!$data->getId()) { // Seulement lors de l'inscription
+                $verificationCode = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+                $data->setVerificationCode($verificationCode);
+                $data->setVerificationCodeExpiresAt(new \DateTimeImmutable('+24 hours'));
+            }
         
             $this->entityManager->persist($data);
             $this->entityManager->flush();
 
             // Synchronise les keywords après avoir l'ID
-            if ($keywords !== null) {
+            if ($keywords !== null && is_array($keywords) && count($keywords) > 0) {
                 $this->keywordService->syncKeywords(
                     User::getKeywordableType(),
                     $data->getId(),

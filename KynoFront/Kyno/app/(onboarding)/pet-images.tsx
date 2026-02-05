@@ -17,6 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import Colors from '@/src/constants/colors';
 import ImagePlaceholder from '@/src/components/ImagePlaceholder';
 import keywordService, { Keyword } from '@/src/services/keywordService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 const IMAGE_SIZE = (width - 80) / 3;
@@ -70,8 +71,12 @@ export default function PetImagesScreen() {
   if (!fontsLoaded) return null;
 
   const pickImage = async (index: number) => {
+    const mediaTypes = (ImagePicker as any).MediaType?.Images
+      ?? (ImagePicker as any).MediaTypeOptions?.Images
+      ?? 'Images';
+
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes,
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -97,7 +102,19 @@ export default function PetImagesScreen() {
   };
 
   const handleNext = () => {
-    router.push('/(onboarding)/location');
+    (async () => {
+      try {
+        const stored = await AsyncStorage.getItem('onboarding');
+        const onboarding = stored ? JSON.parse(stored) : {};
+        onboarding.petImages = images.filter(Boolean);
+        onboarding.petKeywords = selectedKeywords;
+        await AsyncStorage.setItem('onboarding', JSON.stringify(onboarding));
+      } catch (e) {
+        console.error('Erreur sauvegarde onboarding (pet-images):', e);
+      } finally {
+        router.push('/(onboarding)/location');
+      }
+    })();
   };
 
   return (
