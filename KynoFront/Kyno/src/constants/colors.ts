@@ -11,11 +11,15 @@ export const Colors = {
   gray: '#9E9E9E',
   grayLight: '#E0E0E0',
   grayDark: '#424242',
-  
+
   // Couleurs des boutons
   buttonPrimary: '#f2cee1', // Rose clair pour les boutons
   buttonText: '#000000',
-  
+
+  // Couleurs d'état
+  success: '#4CAF50', // Vert pour les validations
+  error: '#F44336', // Rouge pour les erreurs
+
   // Backgrounds
   backgroundPink: '#FFCDD2',
   backgroundLight: '#FFF0F3',

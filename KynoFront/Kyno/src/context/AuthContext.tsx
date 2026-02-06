@@ -33,17 +33,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (authenticated) {
         try {
           const userData = await authService.getMe();
-          console.log('AuthContext.checkAuthStatus - fetched user:', userData);
+          // fetched user available in userData
           setUser(userData);
         } catch (getMeError) {
-          console.log('Erreur lors de la récupération des données utilisateur:', getMeError);
+          // Erreur lors de la récupération des données utilisateur
           // Si getMe échoue, c'est que le token est invalide ou qu'il y a un problème serveur
           setUser(null);
           await authService.logout();
         }
       }
     } catch (error) {
-      console.log('Utilisateur non authentifié ou token invalide');
+      // Utilisateur non authentifié ou token invalide
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -54,7 +54,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true);
     try {
       const userData = await authService.login(credentials);
-      console.log('AuthContext.login - user after login:', userData);
+      // user after login available in userData
       setUser(userData);
       return userData;
     } finally {
@@ -66,7 +66,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true);
     try {
       const userData = await authService.register(data);
-      console.log('AuthContext.register - user after register:', userData);
+      // user after register available in userData
       setUser(userData);
       return userData;
     } finally {
@@ -87,10 +87,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const refreshUser = async () => {
     try {
       const userData = await authService.getMe();
-      console.log('AuthContext.refreshUser - refreshed user:', userData);
+      // refreshed user available in userData
       setUser(userData);
     } catch (error) {
-      console.log('Erreur refresh user - token probablement invalide');
+      // Erreur refresh user - token probablement invalide
       // Si le refresh échoue, déconnecter l'utilisateur
       setUser(null);
       await authService.logout();

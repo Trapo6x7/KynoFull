@@ -10,19 +10,17 @@ const raceService = {
     const response = await apiClient.get<PaginatedResponse<Race>>(
       `${API_CONFIG.ENDPOINTS.RACES}?itemsPerPage=200`
     );
-    // DEBUG: log the full response in case API Platform returns a different shape
-    // (useful when running against different environments)
-    // eslint-disable-next-line no-console
-    console.log('raceService.getRaces response:', response.data);
+    // Normalize/guard the response for different API shapes
+    const data: any = response.data;
     // Support Hydra (`hydra:member`), alternate JSON-LD (`member`), or a plain array
-    if (response.data && Array.isArray(response.data['hydra:member'])) {
-      return response.data['hydra:member'];
+    if (data && Array.isArray(data['hydra:member'])) {
+      return data['hydra:member'];
     }
-    if (response.data && Array.isArray(response.data['member'])) {
-      return response.data['member'];
+    if (data && Array.isArray(data['member'])) {
+      return data['member'];
     }
-    if (Array.isArray(response.data)) {
-      return response.data as Race[];
+    if (Array.isArray(data)) {
+      return data as Race[];
     }
     // Fallback empty array to avoid crashes
     return [];

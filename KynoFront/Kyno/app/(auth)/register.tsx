@@ -175,7 +175,7 @@ export default function RegisterScreen() {
           onPress={() => step === 1 ? router.replace('/') : handlePreviousStep()}
           activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={24} color={Colors.black} />
+          <Ionicons name="arrow-back" size={24} color={Colors.grayDark} />
         </TouchableOpacity>
         <Image
           source={require("@/assets/images/kynologo.png")}
@@ -383,7 +383,7 @@ export default function RegisterScreen() {
                       activeOpacity={0.8}
                     >
                       {isLoading ? (
-                        <ActivityIndicator color={Colors.black} />
+                        <ActivityIndicator color={Colors.grayDark} />
                       ) : (
                         <Text style={styles.buttonText}>WOOF !</Text>
                       )}
@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontFamily: "Manrope_600SemiBold",
-    color: Colors.black,
+    color: Colors.grayDark,
   },
   keyboardView: {
     flex: 1,
@@ -575,7 +575,7 @@ const styles = StyleSheet.create({
     fontFamily: "Manrope_400Regular",
     borderWidth: 1,
     borderColor: Colors.grayLight,
-    color: Colors.black,
+    color: Colors.grayDark,
   },
   inputError: {
     borderColor: Colors.primaryDark,
@@ -604,7 +604,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 16,
     fontFamily: "Manrope_700Bold",
-    color: Colors.black,
+    color: Colors.grayDark,
     letterSpacing: 1,
   },
   separatorContainer: {

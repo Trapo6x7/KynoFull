@@ -5,6 +5,7 @@ namespace App\Entity;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\GetCollection;
 use App\DataPersister\UserDataPersister;
 use App\Repository\UserRepository;
 use DateTimeImmutable;
@@ -42,6 +43,10 @@ use App\Dto\UserPasswordUpdateDto;
             normalizationContext: ['groups' => ['me:read']],
             security: "is_granted('ROLE_USER')",
             provider: MeProvider::class
+        ),
+        new GetCollection(
+            normalizationContext: ['groups' => ['user:read']],
+            security: "is_granted('ROLE_USER')"
         ),
         new Get(
             normalizationContext: ['groups' => ['user:read']],
@@ -133,7 +138,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['groupeRole:read', 'groupRequest:read', 'groupRequest:readAll', 'me:read', 'user:read', 'group:details', 'comment:read'])]
+    #[Groups(['groupeRole:read', 'groupRequest:read', 'groupRequest:readAll', 'me:read', 'user:read', 'user:id', 'group:details', 'comment:read'])]
     private ?int $id = null;
 
     #[Assert\NotBlank]
@@ -176,17 +181,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $description = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 8, nullable: true)]
-    #[Groups(['user:write', 'me:read', 'user:patch'])]
+    #[Groups(['user:write', 'me:read', 'user:read', 'user:patch'])]
     private ?string $latitude = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 11, scale: 8, nullable: true)]
-    #[Groups(['user:write', 'me:read', 'user:patch'])]
+    #[Groups(['user:write', 'me:read', 'user:read', 'user:patch'])]
     private ?string $longitude = null;
 
     #[Assert\NotNull]
     #[Assert\LessThan('-18 years')]
     #[ORM\Column]
-    #[Groups(['user:write', 'me:read'])]
+    #[Groups(['user:write', 'me:read', 'user:read'])]
     private ?\DateTimeImmutable $birthdate = null;
 
     #[ORM\Column]

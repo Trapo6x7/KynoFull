@@ -111,7 +111,7 @@ export default function ForgotPasswordScreen() {
                 activeOpacity={0.8}
               >
                 {isLoading ? (
-                  <ActivityIndicator color={Colors.black} />
+                  <ActivityIndicator color={Colors.grayDark} />
                 ) : (
                   <Text style={styles.buttonText}>VALIDER</Text>
                 )}
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontFamily: 'Manrope_600SemiBold',
-    color: Colors.black,
+    color: Colors.grayDark,
   },
   content: {
     paddingHorizontal: 35,
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Manrope_400Regular',
     borderWidth: 1,
     borderColor: Colors.grayLight,
-    color: Colors.black,
+    color: Colors.grayDark,
   },
   inputError: {
     borderColor: Colors.primaryDark,
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 16,
     fontFamily: 'Manrope_700Bold',
-    color: Colors.black,
+    color: Colors.grayDark,
     letterSpacing: 1,
   },
   helpContainer: {

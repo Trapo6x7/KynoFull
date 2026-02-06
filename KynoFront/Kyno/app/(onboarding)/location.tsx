@@ -66,7 +66,7 @@ export default function LocationScreen() {
       try {
         const stored = await AsyncStorage.getItem('onboarding');
         const onboarding = stored ? JSON.parse(stored) : {};
-        console.log('📦 Onboarding data:', JSON.stringify(onboarding, null, 2));
+        // Onboarding data available in variable 'onboarding'
 
         // Get current user ID
         const userId = currentUser?.id;
@@ -74,7 +74,7 @@ export default function LocationScreen() {
         // Update user data (description, gender, profession, location)
         if (userId && (onboarding.userDetails || location)) {
           try {
-            console.log('👤 Updating user data...');
+            // Updating user data
             const updateData: any = {};
             
             if (onboarding.userDetails) {
@@ -108,7 +108,7 @@ export default function LocationScreen() {
             
             if (Object.keys(updateData).length > 0) {
               await authService.updateUser(userId, updateData);
-              console.log('✅ User data updated');
+              // User data updated
             }
           } catch (e: any) {
             console.error('❌ Erreur mise à jour user:', e);
@@ -118,11 +118,11 @@ export default function LocationScreen() {
 
         // Upload all profile images if present
         if (onboarding.userImages && onboarding.userImages.length > 0) {
-          console.log('📸 Uploading profile images...');
+          // Uploading profile images if any
           for (const uri of onboarding.userImages) {
             try {
               await authService.updateProfileImage(uri);
-              console.log('✅ Profile image uploaded:', uri);
+              // profile image uploaded
             } catch (e: any) {
               console.error('❌ Erreur upload profile image:', e);
               console.error('Response:', e.response?.data);
@@ -196,8 +196,15 @@ export default function LocationScreen() {
         // Clear onboarding storage
         await AsyncStorage.removeItem('onboarding');
 
-        // Rediriger vers la vérification d'email
-        router.replace('/(onboarding)/verify-email');
+        // Refresh user data
+        await refreshUser();
+
+        // Rediriger selon le statut de vérification
+        if (currentUser?.isVerified) {
+          router.replace('/(tabs)/explore');
+        } else {
+          router.replace('/(onboarding)/verify-email');
+        }
       } catch (error) {
         console.error('Erreur finalisation onboarding:', error);
         router.replace('/(tabs)/explore');
@@ -239,9 +246,9 @@ export default function LocationScreen() {
                     <Text style={styles.cameraIconText}>📷</Text>
                   </View>
                 </View>
-              )}
+                // Creating dog with data available in createData
             </View>
-          ))}
+                // Dog created
         </View> */}
 
         {/* Carte */}
@@ -314,12 +321,12 @@ const styles = StyleSheet.create({
   },
   closeText: {
     fontSize: 20,
-    color: Colors.black,
+    color: Colors.grayDark,
   },
   headerTitle: {
     fontSize: 16,
     fontFamily: 'Manrope_600SemiBold',
-    color: Colors.black,
+    color: Colors.grayDark,
   },
   placeholder: {
     width: 40,
@@ -334,7 +341,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontFamily: 'Manrope_600SemiBold',
-    color: Colors.black,
+    color: Colors.grayDark,
     marginBottom: 8,
   },
   subtitle: {
@@ -417,7 +424,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 14,
     fontFamily: 'Manrope_600SemiBold',
-    color: Colors.black,
+    color: Colors.grayDark,
     letterSpacing: 1,
   },
 });

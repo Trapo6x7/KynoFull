@@ -92,7 +92,6 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.backgroundLight,
   },
   header: {
     backgroundColor: Colors.primary,
@@ -171,7 +170,7 @@ const styles = StyleSheet.create({
   menuTitle: {
     flex: 1,
     fontSize: 16,
-    color: Colors.black,
+    color: Colors.grayDark,
   },
   menuArrow: {
     fontSize: 20,

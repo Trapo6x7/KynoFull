@@ -20,6 +20,13 @@ const apiClient: AxiosInstance = axios.create({
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     const token = await AsyncStorage.getItem(TOKEN_KEY);
+    console.log('🔑 API Request - Token:', token ? 'EXISTS' : 'MISSING');
+    console.log('📍 API Request - URL:', config.url);
+    if (token) {
+      // show first/last chars to confirm header presence without leaking full token
+      const preview = token.length > 12 ? `${token.slice(0,6)}...${token.slice(-6)}` : token;
+      console.log('🔐 API Request - Authorization preview:', `Bearer ${preview}`);
+    }
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }

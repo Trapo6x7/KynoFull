@@ -93,19 +93,12 @@ export default function VerifyEmailScreen() {
       await emailService.verifyCode(user.email, codeToVerify);
       await refreshUser();
       
-      Alert.alert('Succès', 'Email vérifié avec succès !', [
-        {
-          text: 'OK',
-          onPress: () => {
-            // Rediriger vers onboarding ou tabs selon is_complete
-            if (user.is_complete) {
-              router.replace('/(tabs)/explore');
-            } else {
-              router.replace('/(onboarding)/your-detail');
-            }
-          }
-        }
-      ]);
+      // Rediriger directement sans Alert
+      if (user.is_complete) {
+        router.replace('/(tabs)/explore');
+      } else {
+        router.replace('/(onboarding)/your-detail');
+      }
     } catch (error: any) {
       console.error('Erreur vérification code:', error);
       const message = error.response?.data?.error || 'Code invalide ou expiré';
@@ -231,7 +224,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontFamily: 'Manrope_600SemiBold',
-    color: Colors.black,
+    color: Colors.grayDark,
   },
   placeholder: {
     width: 40,
@@ -259,7 +252,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontFamily: 'Manrope_600SemiBold',
-    color: Colors.black,
+    color: Colors.grayDark,
     marginBottom: 15,
     textAlign: 'center',
   },
@@ -273,7 +266,7 @@ const styles = StyleSheet.create({
   },
   email: {
     fontFamily: 'Manrope_600SemiBold',
-    color: Colors.black,
+    color: Colors.grayDark,
   },
   instruction: {
     fontSize: 14,
@@ -298,7 +291,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontFamily: 'Manrope_600SemiBold',
     textAlign: 'center',
-    color: Colors.black,
+    color: Colors.grayDark,
     backgroundColor: Colors.white,
   },
   codeInputFilled: {
@@ -325,7 +318,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 14,
     fontFamily: 'Manrope_600SemiBold',
-    color: Colors.black,
+    color: Colors.grayDark,
     letterSpacing: 1,
   },
   resendButton: {

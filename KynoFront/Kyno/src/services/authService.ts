@@ -40,7 +40,9 @@ export interface User {
   createdAt: string;
   dogs?: Dog[];
   is_complete?: boolean;
-  isVerified?: boolean; // Statut de vérification de l'email
+  isVerified?: boolean;
+  latitude?: string;
+  longitude?: string;
 }
 
 export interface Dog {
@@ -71,9 +73,8 @@ const authService = {
    * Connexion de l'utilisateur
    */
   login: async (credentials: LoginCredentials): Promise<User> => {
-    console.log('=== LOGIN ATTEMPT ===');
-    console.log('Email:', credentials.email);
-    console.log('Sending to:', API_CONFIG.ENDPOINTS.LOGIN);
+    // LOGIN ATTEMPT
+    // Email and endpoint info available
     
     try {
       // Supprimer l'ancien token avant le login
@@ -87,11 +88,10 @@ const authService = {
         }
       );
 
-      console.log('Login response:', response.data);
+      // Login response available
 
       // Stocker le token
       await setToken(response.data.token);
-      console.log('Token saved');
 
       // Petit délai pour s'assurer que le token est bien sauvegardé
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -100,10 +100,7 @@ const authService = {
       const user = await authService.getMe();
       return user;
     } catch (error: any) {
-      console.log('=== LOGIN ERROR ===');
-      console.log('Error:', JSON.stringify(error, null, 2));
-      console.log('Response status:', error.response?.status);
-      console.log('Response data:', JSON.stringify(error.response?.data, null, 2));
+      // LOGIN ERROR - details available in 'error'
       throw error;
     }
   },
@@ -112,28 +109,34 @@ const authService = {
    * Inscription d'un nouvel utilisateur
    */
   register: async (data: RegisterData): Promise<User> => {
-    await apiClient.post(API_CONFIG.ENDPOINTS.REGISTER, data);
+    try {
+      await apiClient.post(API_CONFIG.ENDPOINTS.REGISTER, data);
 
-    // Connexion automatique après inscription
-    return await authService.login({
-      email: data.email,
-      password: data.password,
-    });
+      // Petit délai avant la connexion automatique
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Connexion automatique après inscription
+      return await authService.login({
+        email: data.email,
+        password: data.password,
+      });
+    } catch (error: any) {
+      // REGISTER ERROR - details available in 'error'
+      throw error;
+    }
   },
 
   /**
    * Récupérer les informations de l'utilisateur connecté
    */
   getMe: async (): Promise<User> => {
-    console.log('=== GETME ATTEMPT ===');
+    // GETME ATTEMPT
     try {
       const response = await apiClient.get<User>(API_CONFIG.ENDPOINTS.ME);
-      console.log('GetMe success:', response.data);
+      // GetMe success - response data available
       return response.data;
     } catch (error: any) {
-      console.log('=== GETME ERROR ===');
-      console.log('Status:', error.response?.status);
-      console.log('Data:', error.response?.data);
+      // GETME ERROR - details available in 'error'
       throw error;
     }
   },
@@ -142,7 +145,18 @@ const authService = {
    * Déconnexion
    */
   logout: async (): Promise<void> => {
+    console.log('🚪 LOGOUT - Début de la déconnexion');
+    try {
+      console.log('📤 LOGOUT - Appel API /api/logout');
+      await apiClient.post(API_CONFIG.ENDPOINTS.LOGOUT);
+      console.log('✅ LOGOUT - API appelée avec succès');
+    } catch (error) {
+      console.error('⚠️ LOGOUT - Erreur API (on continue quand même):', error);
+    }
+    
+    console.log('🗑️ LOGOUT - Suppression du token local');
     await removeToken();
+    console.log('✅ LOGOUT - Token supprimé, déconnexion terminée');
   },
 
   /**

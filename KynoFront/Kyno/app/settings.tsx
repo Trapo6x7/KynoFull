@@ -18,6 +18,12 @@ export default function SettingsScreen() {
   const { user, logout } = useAuth();
   const [privateMode, setPrivateMode] = useState(false);
 
+  const displayName = user
+    ? (user.firstName || user.lastName)
+      ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim()
+      : (user as any).name ?? ''
+    : '';
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -32,7 +38,7 @@ export default function SettingsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors.black} />
+          <Ionicons name="arrow-back" size={24} color={Colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -40,9 +46,9 @@ export default function SettingsScreen() {
         {/* Profile Section */}
         <View style={styles.profileSection}>
           <View style={styles.profileImageContainer}>
-            {user?.images && user.images.length > 0 ? (
+            {user?.image && user.image.length > 0 ? (
               <Image
-                source={{ uri: `${API_CONFIG.BASE_URL}/uploads/images/${user.images[0]}` }}
+                source={{ uri: `${API_CONFIG.BASE_URL}/uploads/images/${user.image[0]}` }}
                 style={styles.profileImage}
               />
             ) : (
@@ -51,7 +57,9 @@ export default function SettingsScreen() {
               </View>
             )}
           </View>
-          <Text style={styles.profileName}>{user?.name}, {user?.birthdate ? new Date().getFullYear() - new Date(user.birthdate).getFullYear() : ''}</Text>
+          <Text style={styles.profileName}>
+            {displayName || 'Utilisateur'}
+          </Text>
           <Text style={styles.profileEmail}>{user?.email}</Text>
         </View>
 
@@ -62,7 +70,7 @@ export default function SettingsScreen() {
               <Text style={styles.menuTitle}>Paramètres de match</Text>
               <Text style={styles.menuSubtitle}>Gérer vos préférences de matching</Text>
             </View>
-            <Ionicons name="chevron-forward" size={24} color={Colors.black} />
+            <Ionicons name="chevron-forward" size={24} color={Colors.grayDark} />
           </TouchableOpacity>
 
           <View style={styles.divider} />
@@ -72,7 +80,7 @@ export default function SettingsScreen() {
               <Text style={styles.menuTitle}>Ma localisation</Text>
               <Text style={styles.menuSubtitle}>Modifier votre position</Text>
             </View>
-            <Ionicons name="chevron-forward" size={24} color={Colors.black} />
+            <Ionicons name="chevron-forward" size={24} color={Colors.grayDark} />
           </TouchableOpacity>
 
           <View style={styles.divider} />
@@ -82,7 +90,7 @@ export default function SettingsScreen() {
               <Text style={styles.menuTitle}>Editer profil</Text>
               <Text style={styles.menuSubtitle}>Modifier vos informations</Text>
             </View>
-            <Ionicons name="chevron-forward" size={24} color={Colors.black} />
+            <Ionicons name="chevron-forward" size={24} color={Colors.grayDark} />
           </TouchableOpacity>
 
           <View style={styles.divider} />
@@ -92,7 +100,7 @@ export default function SettingsScreen() {
               <Text style={styles.menuTitle}>Invitez des amis</Text>
               <Text style={styles.menuSubtitle}>Partagez l'application</Text>
             </View>
-            <Ionicons name="chevron-forward" size={24} color={Colors.black} />
+            <Ionicons name="chevron-forward" size={24} color={Colors.grayDark} />
           </TouchableOpacity>
         </View>
 
@@ -119,7 +127,7 @@ export default function SettingsScreen() {
               <Text style={styles.menuTitle}>A propos</Text>
               <Text style={styles.menuSubtitle}>Informations sur l'application</Text>
             </View>
-            <Ionicons name="chevron-forward" size={24} color={Colors.black} />
+            <Ionicons name="chevron-forward" size={24} color={Colors.grayDark} />
           </TouchableOpacity>
         </View>
 
@@ -178,7 +186,7 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 24,
     fontWeight: '700',
-    color: Colors.black,
+    color: Colors.grayDark,
     marginBottom: 5,
   },
   profileEmail: {
@@ -206,7 +214,7 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.black,
+    color: Colors.grayDark,
     marginBottom: 3,
   },
   menuSubtitle: {

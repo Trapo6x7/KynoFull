@@ -90,7 +90,7 @@ class Dog
     private ?string $description = null;
 
     #[ORM\Column]
-    #[Groups(['dog:read', 'dog:write', 'me:read'])]
+    #[Groups(['dog:read', 'dog:write', 'me:read', 'user:read'])]
     private ?\DateTimeImmutable $birthdate = null;
 
     #[ORM\ManyToOne(inversedBy: 'dogs')]
@@ -99,7 +99,7 @@ class Dog
     private ?User $user = null;
 
     #[ORM\Column(type: 'json', nullable: true)]
-    #[Groups(['dog:read', 'dog:image'])]
+    #[Groups(['dog:read', 'dog:image', 'me:read', 'user:read'])]
     private ?array $images = null;
 
     #[Groups(['dog:image'])]
@@ -198,7 +198,7 @@ class Dog
         return $this;
     }
 
-    #[Groups(['me:read','dog:read'])]
+    #[Groups(['me:read','dog:read', 'user:read'])]
     #[SerializedName('images')]
     public function getImagesForSerialization(): array
     {

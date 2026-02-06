@@ -23,16 +23,12 @@ const keywordService = {
    */
   getKeywordsByCategory: async (category: 'user' | 'dog' | 'activity'): Promise<Keyword[]> => {
     const url = `${API_CONFIG.ENDPOINTS.KEYWORDS}?category=${category}&itemsPerPage=200`;
-    console.log('📡 Fetching keywords from:', url);
-    
+    // Fetching keywords from url
     const response = await apiClient.get<{ 'hydra:member'?: Keyword[], 'member'?: Keyword[] }>(url);
-    
-    console.log('📦 Response status:', response.status);
-    console.log('📦 Response data:', response.data);
     
     // API Platform peut retourner soit 'hydra:member' soit 'member'
     const keywords = response.data['hydra:member'] || response.data['member'] || [];
-    console.log('✅ Keywords trouvés:', keywords.length);
+    // Keywords found count available
     
     return keywords;
   },

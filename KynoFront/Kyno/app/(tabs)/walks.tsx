@@ -34,7 +34,6 @@ export default function WalksScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.backgroundLight,
   },
   header: {
     paddingTop: 60,
@@ -44,7 +43,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: Colors.black,
+    color: Colors.grayDark,
   },
   content: {
     flexGrow: 1,
@@ -62,7 +61,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.black,
+    color: Colors.grayDark,
     marginBottom: 10,
   },
   emptyText: {

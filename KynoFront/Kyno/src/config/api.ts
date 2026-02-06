@@ -7,7 +7,7 @@
 
 // const DEV_API_URL = 'http://10.0.2.2:8000'; // Pour Android Emulator
 // const DEV_API_URL = 'http://localhost:8000'; // Pour iOS Simulator
-const DEV_API_URL = 'http://192.168.0.15:8000'; // Pour appareil physique
+const DEV_API_URL = 'http://192.168.1.248:8000'; // Pour appareil physique
 
 const PROD_API_URL = 'https://api.dogwalk.com'; // URL de production
 
@@ -18,6 +18,7 @@ export const API_CONFIG = {
     LOGIN: '/api/login_check',
     REGISTER: '/api/register',
     ME: '/api/me',
+    LOGOUT: '/api/logout',
     
     // Users
     USERS: '/api/users',
@@ -42,6 +43,9 @@ export const API_CONFIG = {
     
     // Keywords
     KEYWORDS: '/api/keywords',
+    
+    // Matches
+    USER_MATCHES: '/api/user_matches',
   },
   TIMEOUT: 30000, // 30 secondes
 };

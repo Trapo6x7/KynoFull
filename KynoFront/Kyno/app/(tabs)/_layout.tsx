@@ -1,5 +1,7 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -7,8 +9,13 @@ import Colors from '@/src/constants/colors';
 
 export default function TabLayout() {
   return (
-    <Tabs
-      screenOptions={{
+    <LinearGradient
+      colors={['#ffffff', '#e8f0f7', '#d4e4f0']}
+      locations={[0, 0.5, 1]}
+      style={styles.container}
+    >
+      <Tabs
+        screenOptions={{
         tabBarActiveTintColor: Colors.primaryDark,
         tabBarInactiveTintColor: Colors.gray,
         headerShown: false,
@@ -53,5 +60,12 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    </LinearGradient>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});

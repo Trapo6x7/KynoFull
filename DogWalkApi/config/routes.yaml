@@ -3,6 +3,11 @@ controllers:
         path: ../src/Controller/
         namespace: App\Controller
     type: attribute
-# config/routes.yaml
+
 api_login_check:
     path: /api/login_check
+
+api_users_professions:
+    path: /users/professions
+    controller: App\Controller\UserController::getProfessions
+    methods: [GET]

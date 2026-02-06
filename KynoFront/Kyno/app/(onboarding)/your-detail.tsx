@@ -8,7 +8,6 @@ import {
   ScrollView,
   Dimensions,
   Modal,
-  FlatList,
 } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -45,11 +44,17 @@ export default function YourDetailScreen() {
   }, []);
 
   const loadProfessions = async () => {
+    console.log('=== LOAD PROFESSIONS ===');
     try {
+      console.log('Calling userService.getProfessions()');
       const data = await userService.getProfessions();
+      console.log('Professions loaded:', data);
       setProfessions(data);
     } catch (error) {
-      // Silencieux - l'utilisateur peut toujours saisir manuellement
+      console.log('=== ERROR LOADING PROFESSIONS ===');
+      console.log('Error:', error);
+      console.log('Error message:', error.message);
+      console.log('Error response:', error.response);
       setProfessions([]);
     }
   };
@@ -137,18 +142,15 @@ export default function YourDetailScreen() {
           />
           {showProfessionSuggestions && filteredProfessions.length > 0 && (
             <View style={styles.suggestionsContainer}>
-              <FlatList
-                data={filteredProfessions.slice(0, 5)}
-                keyExtractor={(item, index) => index.toString()}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.suggestionItem}
-                    onPress={() => selectProfession(item)}
-                  >
-                    <Text style={styles.suggestionText}>{item}</Text>
-                  </TouchableOpacity>
-                )}
-              />
+              {filteredProfessions.slice(0, 5).map((item, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.suggestionItem}
+                  onPress={() => selectProfession(item)}
+                >
+                  <Text style={styles.suggestionText}>{item}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
           )}
         </View>
@@ -239,12 +241,12 @@ const styles = StyleSheet.create({
   },
   closeText: {
     fontSize: 20,
-    color: Colors.black,
+    color: Colors.grayDark,
   },
   headerTitle: {
     fontSize: 16,
     fontFamily: 'Manrope_600SemiBold',
-    color: Colors.black,
+    color: Colors.grayDark,
   },
   placeholder: {
     width: 40,
@@ -274,7 +276,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Manrope_400Regular',
     borderWidth: 1,
     borderColor: Colors.grayLight,
-    color: Colors.black,
+    color: Colors.grayDark,
   },
   textArea: {
     height: 320,
@@ -294,7 +296,7 @@ const styles = StyleSheet.create({
   pickerButtonText: {
     fontSize: 14,
     fontFamily: 'Manrope_400Regular',
-    color: Colors.black,
+    color: Colors.grayDark,
   },
   placeholderText: {
     color: Colors.gray,
@@ -313,7 +315,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 14,
     fontFamily: 'Manrope_600SemiBold',
-    color: Colors.black,
+    color: Colors.grayDark,
     letterSpacing: 1,
   },
   modalOverlay: {
@@ -331,7 +333,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 16,
     fontFamily: 'Manrope_600SemiBold',
-    color: Colors.black,
+    color: Colors.grayDark,
     marginBottom: 15,
     textAlign: 'center',
   },
@@ -347,7 +349,7 @@ const styles = StyleSheet.create({
   modalOptionText: {
     fontSize: 14,
     fontFamily: 'Manrope_500Medium',
-    color: Colors.black,
+    color: Colors.grayDark,
     textAlign: 'center',
   },
   modalOptionTextSelected: {
@@ -358,13 +360,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: Colors.grayLight,
-    marginTop: 4,
+    marginTop: 1,
     maxHeight: 200,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   suggestionItem: {
     paddingVertical: 12,
@@ -375,6 +375,6 @@ const styles = StyleSheet.create({
   suggestionText: {
     fontSize: 14,
     fontFamily: 'Manrope_400Regular',
-    color: Colors.black,
+    color: Colors.grayDark,
   },
 });

@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontFamily: 'Manrope_600SemiBold',
-    color: Colors.black,
+    color: Colors.grayDark,
     marginBottom: 12,
     textAlign: 'center',
   },
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   buttonPrimaryText: {
     fontSize: 14,
     fontFamily: 'Manrope_600SemiBold',
-    color: Colors.black,
+    color: Colors.grayDark,
     letterSpacing: 1,
   },
   buttonSecondary: {
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   buttonSecondaryText: {
     fontSize: 14,
     fontFamily: 'Manrope_600SemiBold',
-    color: Colors.black,
+    color: Colors.grayDark,
     letterSpacing: 1,
   },
 });

@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 24,
     fontWeight: '700',
-    color: Colors.black,
+    color: Colors.grayDark,
   },
   profileButton: {
     width: 50,
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.black,
+    color: Colors.grayDark,
     marginBottom: 15,
   },
   emptyState: {

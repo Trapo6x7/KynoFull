@@ -54,7 +54,7 @@ export default function SplashScreen({ onFinish }: { onFinish?: () => void }) {
   const startedRef = useRef(false);
 
   useEffect(() => {
-    if (startedRef.current) return; // prevent double start (dev/mount quirks)
+    if (startedRef.current) return;
     startedRef.current = true;
     // Splash zoom
     const timer1 = setTimeout(() => {
@@ -133,18 +133,6 @@ export default function SplashScreen({ onFinish }: { onFinish?: () => void }) {
     transform: [{ translateY: buttonsTranslateY.value }],
   }));
 
-  useEffect(() => {
-    if (showWelcome && user) {
-      // Rediriger automatiquement si l'utilisateur est connecté
-      if (!user.is_complete) {
-        router.replace('/(onboarding)/your-detail');
-      } else if (!user.isVerified) {
-        router.replace('/(onboarding)/verify-email');
-      } else {
-        router.replace('/(tabs)/explore');
-      }
-    }
-  }, [showWelcome, user]);
 
   const handleLogin = () => {
     router.push('/(auth)/login');
@@ -258,7 +246,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontFamily: 'Manrope_600SemiBold',
-    color: Colors.black,
+    color: Colors.grayDark,
     marginBottom: 12,
     textAlign: 'center',
   },
@@ -294,7 +282,7 @@ const styles = StyleSheet.create({
   buttonPrimaryText: {
     fontSize: 14,
     fontFamily: 'Manrope_600SemiBold',
-    color: Colors.black,
+    color: Colors.grayDark,
     letterSpacing: 1,
   },
   buttonSecondary: {
@@ -306,7 +294,7 @@ const styles = StyleSheet.create({
   buttonSecondaryText: {
     fontSize: 14,
     fontFamily: 'Manrope_600SemiBold',
-    color: Colors.black,
+    color: Colors.grayDark,
     letterSpacing: 1,
   },
 });

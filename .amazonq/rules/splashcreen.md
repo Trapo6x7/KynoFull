@@ -1,0 +1,10 @@
+Je ne veux aucune redirection sur le splashscreen, c'est au user de cliquer sur le choix qu'il veut
+Il faut que le splashscreen soit une page statique, sans logique métier, juste du HTML/CSS pour présenter les différentes options au user. Le user doit être libre de cliquer sur l'option qu'il souhaite sans être redirigé automatiquement vers une page spécifique.
+Il est important de respecter cette règle pour garantir une expérience utilisateur fluide et intuitive. Le splashscreen doit servir de point d'entrée pour les utilisateurs, leur permettant de choisir facilement entre les différentes options disponibles sans être contraints par des redirections automatiques.
+
+Il faut utiliser API platform comme le legacy de l'api dogwalk le faisait, pas changer de logique
+Il est essentiel de maintenir la logique existante de l'API Dogwalk en utilisant API Platform. Cela signifie que nous devons continuer à utiliser les mêmes endpoints, les mêmes méthodes HTTP et les mêmes structures de données que celles déjà en place. Il ne faut pas introduire de changements qui pourraient perturber les intégrations existantes ou nécessiter des modifications importantes du côté client.
+En respectant cette règle, nous assurons une transition en douceur vers API Platform tout en préservant la stabilité et la compatibilité de l'API. Les utilisateurs actuels de l'API Dogwalk pourront continuer à utiliser les mêmes fonctionnalités sans interruption, ce qui est crucial pour maintenir la confiance et la satisfaction des utilisateurs.
+
+Dans le tunnel de l'onboarding on demande de verifier l'email en premier et ensuite les form de details
+Lors du processus d'onboarding, il est important de demander à l'utilisateur de vérifier son adresse e-mail avant de lui présenter les formulaires de détails. Cette séquence garantit que nous avons une adresse e-mail valide pour communiquer avec l'utilisateur et éviter les problèmes de communication ultérieurs.

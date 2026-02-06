@@ -416,12 +416,12 @@ const styles = StyleSheet.create({
   },
   closeText: {
     fontSize: 20,
-    color: Colors.black,
+    color: Colors.grayDark,
   },
   headerTitle: {
     fontSize: 16,
     fontFamily: 'Manrope_600SemiBold',
-    color: Colors.black,
+    color: Colors.grayDark,
   },
   placeholder: {
     width: 40,
@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Manrope_400Regular',
     borderWidth: 1,
     borderColor: Colors.grayLight,
-    color: Colors.black,
+    color: Colors.grayDark,
   },
   textArea: {
     height: 120,
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
   pickerButtonText: {
     fontSize: 14,
     fontFamily: 'Manrope_400Regular',
-    color: Colors.black,
+    color: Colors.grayDark,
   },
   placeholderText: {
     color: Colors.gray,
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 14,
     fontFamily: 'Manrope_600SemiBold',
-    color: Colors.black,
+    color: Colors.grayDark,
     letterSpacing: 1,
   },
   modalOverlay: {
@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 16,
     fontFamily: 'Manrope_600SemiBold',
-    color: Colors.black,
+    color: Colors.grayDark,
     marginBottom: 15,
     textAlign: 'center',
   },
@@ -524,7 +524,7 @@ const styles = StyleSheet.create({
   modalOptionText: {
     fontSize: 14,
     fontFamily: 'Manrope_500Medium',
-    color: Colors.black,
+    color: Colors.grayDark,
     textAlign: 'center',
   },
   modalOptionTextSelected: {
