@@ -10,16 +10,12 @@ use Symfony\Bundle\SecurityBundle\Security;
 
 class CommentDataPersister implements ProcessorInterface
 {
-    private $persistProcessor;
-    private $security;
+    public function __construct(
+        private readonly ProcessorInterface $persistProcessor,
+        private readonly Security $security
+    ) {}
 
-    public function __construct(ProcessorInterface $persistProcessor, Security $security)
-    {
-        $this->persistProcessor = $persistProcessor;
-        $this->security = $security;
-    }
-
-    public function process($data, Operation $operation, array $uriVariables = [], array $context = [])
+    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
         if ($data instanceof Comment && $operation instanceof Post) {
             $user = $this->security->getUser();

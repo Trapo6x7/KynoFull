@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Contract\Repository\UserRepositoryInterface;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -11,8 +12,11 @@ use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
 
 /**
  * @extends ServiceEntityRepository<User>
+ *
+ * Implémente UserRepositoryInterface → les services métier dépendent de l'abstraction (DIP).
+ * Un InMemoryUserRepository de test peut implémenter la même interface sans Doctrine.
  */
-class UserRepository extends ServiceEntityRepository implements PasswordUpgraderInterface
+class UserRepository extends ServiceEntityRepository implements PasswordUpgraderInterface, UserRepositoryInterface
 {
     public function __construct(ManagerRegistry $registry)
     {

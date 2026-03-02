@@ -2,15 +2,17 @@
 
 namespace App\Service;
 
+use App\Contract\KeywordSynchronizerInterface;
 use App\Entity\Keyword;
 use App\Entity\Keywordable;
 use App\Repository\KeywordableRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Service pour gérer les associations polymorphiques de keywords
+ * Implémentation principale de la synchronisation de keywords.
+ * Implémente KeywordSynchronizerInterface → les DataPersisters dépendent de l'abstraction (DIP).
  */
-class KeywordService
+class KeywordService implements KeywordSynchronizerInterface
 {
     public function __construct(
         private EntityManagerInterface $entityManager,

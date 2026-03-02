@@ -9,8 +9,10 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Delete;
-use App\DataPersister\GroupDataPersister;
+use App\DataPersister\GroupCreateDataPersister;
 use App\Repository\GroupRepository;
+use App\Contract\CommentableInterface;
+use App\Contract\KeywordableInterface;
 use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -33,7 +35,7 @@ use ApiPlatform\Metadata\Operation;
         new Post(
             denormalizationContext: ['groups' => ['group:write']],
             security: "is_granted('ROLE_USER')",
-            processor: GroupDataPersister::class,
+            processor: GroupCreateDataPersister::class,
             securityMessage: "Seuls les utilisateurs connectés peuvent créer des groupes"
         ),
         new Patch(
@@ -54,7 +56,7 @@ use ApiPlatform\Metadata\Operation;
         ),
     ]
 )]
-class Group
+class Group implements CommentableInterface, KeywordableInterface
 {
     /**
      * Le créateur du groupe
@@ -374,5 +376,13 @@ class Group
     public static function getKeywordableType(): string
     {
         return Keywordable::TYPE_GROUP;
+    }
+
+    /**
+     * Implémentation de CommentableInterface (SOLID - OCP).
+     */
+    public function getCommentableType(): string
+    {
+        return 'group';
     }
 }

@@ -13,6 +13,8 @@ use App\Controller\DogController;
 use App\DataPersister\DogDataPersister;
 use App\DataPersister\DogImageDataPersister;
 use App\Repository\DogRepository;
+use App\Contract\CommentableInterface;
+use App\Contract\KeywordableInterface;
 use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -63,7 +65,7 @@ use Symfony\Component\Serializer\Annotation\SerializedName;
         ),
     ]
 )]
-class Dog
+class Dog implements CommentableInterface, KeywordableInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -287,5 +289,14 @@ class Dog
     public static function getKeywordableType(): string
     {
         return Keywordable::TYPE_DOG;
+    }
+
+    /**
+     * Implémentation de CommentableInterface (SOLID - OCP).
+     * Ajouter un type commentable ne nécessite plus de modifier Comment.
+     */
+    public function getCommentableType(): string
+    {
+        return 'dog';
     }
 }

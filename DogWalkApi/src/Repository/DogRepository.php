@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Contract\Repository\DogRepositoryInterface;
 use App\Entity\Dog;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -9,7 +10,7 @@ use Doctrine\Persistence\ManagerRegistry;
 /**
  * @extends ServiceEntityRepository<Dog>
  */
-class DogRepository extends ServiceEntityRepository
+class DogRepository extends ServiceEntityRepository implements DogRepositoryInterface
 {
     public function __construct(ManagerRegistry $registry)
     {

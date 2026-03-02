@@ -3,9 +3,9 @@
 namespace App\Security\Voter;
 
 use App\Entity\Group;
-use App\Entity\GroupMembership;
 use App\Entity\User;
 use App\Entity\Walk;
+use App\Service\GroupMembershipChecker;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -16,6 +16,10 @@ final class WalkVoter extends Voter
     public const VIEW = 'WALK_VIEW';
     public const CREATE = 'WALK_CREATE';
     public const DELETE = 'WALK_DELETE';
+
+    public function __construct(
+        private readonly GroupMembershipChecker $membershipChecker
+    ) {}
 
     protected function supports(string $attribute, mixed $subject): bool
     {
@@ -39,13 +43,7 @@ final class WalkVoter extends Voter
 
         // Gérer le cas spécifique de WALK_CREATE
         if ($attribute === self::CREATE) {
-            // Vérifier si l'utilisateur est membre actif d'au moins un groupe
-            foreach ($user->getMemberships() as $membership) {
-                if ($membership->isActive() && in_array($membership->getRole(), [GroupMembership::ROLE_MEMBER, GroupMembership::ROLE_CREATOR])) {
-                    return true;
-                }
-            }
-            return false;
+            return $this->membershipChecker->isActiveMemberOfAnyGroup($user);
         }
 
         // Récupérer le groupe de la promenade
@@ -55,36 +53,20 @@ final class WalkVoter extends Voter
             return false;
         }
 
-        // Vérifier si l'utilisateur est membre du groupe
-        if (!$this->isUserInGroup($user, $walkGroup)) {
-            return false;
-        }
-
         // Gestion des permissions selon l'attribut
-        switch ($attribute) {
-            case self::VIEW:
-            case self::CREATE:
-                // Les membres du groupe peuvent voir et créer des promenades
-                return true;
-            case self::EDIT:
-            case self::DELETE:
-                return false;
-        }
-
-        return false;
+        return match ($attribute) {
+            self::VIEW  => $this->membershipChecker->isMemberOf($user, $walkGroup),
+            self::EDIT,
+            self::DELETE => false,
+            default      => false,
+        };
     }
 
+    /**
+     * @deprecated Utiliser GroupMembershipChecker::isMemberOf() directement.
+     */
     public function isUserInGroup(User $user, Group $group): bool
     {
-        foreach ($user->getMemberships() as $membership) {
-            if (
-                $membership->getWalkGroup()->getId() === $group->getId() &&
-                $membership->isActive() &&
-                in_array($membership->getRole(), [GroupMembership::ROLE_MEMBER, GroupMembership::ROLE_CREATOR])
-            ) {
-                return true;
-            }
-        }
-        return false;
+        return $this->membershipChecker->isMemberOf($user, $group);
     }
 }

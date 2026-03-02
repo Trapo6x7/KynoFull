@@ -5,11 +5,11 @@ namespace App\DataPersister;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Entity\User;
-use App\Service\FileUploader;
-use App\Service\KeywordService;
+use App\Contract\KeywordSynchronizerInterface;
+use App\Event\UserRegisteredEvent;
+use App\Service\VerificationCodeGenerator;
 use Doctrine\ORM\EntityManagerInterface;
-use Psr\Log\LoggerInterface;
-use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -18,36 +18,14 @@ class UserDataPersister implements ProcessorInterface
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly UserPasswordHasherInterface $passwordHasher,
-        private readonly FileUploader $fileUploader,
         private readonly RequestStack $requestStack,
-        private readonly Security $security,
-        private readonly LoggerInterface $logger,
-        private readonly KeywordService $keywordService
+        private readonly KeywordSynchronizerInterface $keywordService,
+        private readonly VerificationCodeGenerator $codeGenerator,
+        private readonly EventDispatcherInterface $eventDispatcher
     ) {}
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): User
     {
-        if (str_contains($operation->getName(), 'image_post')) {
-            $request = $this->requestStack->getCurrentRequest();
-            /** @var User $user */
-            $user = $this->security->getUser();
-            if ($user) {
-                if ($request && $request->files->has('file')) {
-                    $file = $request->files->get('file');
-                    if ($file) {
-                        $fileName = $this->fileUploader->upload($file);
-                        $images = $user->getImages() ?? [];
-                        $images[] = $fileName;
-                        $user->setImages($images);
-                        $user->setUpdatedAt(new \DateTimeImmutable());
-                        $this->entityManager->flush();
-                    }
-                }
-                return $user;
-            }
-        }
-
-
         if ($data instanceof User) {
             // Récupère les keywords depuis la requête HTTP (stockés par le listener)
             $request = $this->requestStack->getCurrentRequest();
@@ -61,15 +39,20 @@ class UserDataPersister implements ProcessorInterface
                 }
             }
 
-            // Générer un code de vérification à 6 chiffres
-            if (!$data->getId()) { // Seulement lors de l'inscription
-                $verificationCode = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-                $data->setVerificationCode($verificationCode);
+            // Générer un code de vérification à 6 chiffres (délégué au service dédié)
+            $isNewUser = !$data->getId(); // Seulement lors de l'inscription
+            if ($isNewUser) {
+                $data->setVerificationCode($this->codeGenerator->generate());
                 $data->setVerificationCodeExpiresAt(new \DateTimeImmutable('+24 hours'));
             }
         
             $this->entityManager->persist($data);
             $this->entityManager->flush();
+
+            // Dispatch de l'événement post-inscription (OCP : les side-effects sont dans des listeners)
+            if ($isNewUser) {
+                $this->eventDispatcher->dispatch(new UserRegisteredEvent($data));
+            }
 
             // Synchronise les keywords après avoir l'ID
             if ($keywords !== null && is_array($keywords) && count($keywords) > 0) {

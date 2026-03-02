@@ -10,7 +10,7 @@ use App\Entity\Dog;
 use App\Entity\Group;
 use App\Entity\GroupMembership;
 use App\Entity\User;
-use App\Service\KeywordService;
+use App\Contract\KeywordSynchronizerInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -20,7 +20,7 @@ class GroupDataPersister implements ProcessorInterface
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly Security $security,
-        private readonly KeywordService $keywordService
+        private readonly KeywordSynchronizerInterface $keywordService
     ) {}
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): Group

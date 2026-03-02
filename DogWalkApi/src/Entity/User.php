@@ -25,6 +25,9 @@ use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use App\Dto\UserPasswordUpdateDto;
+use App\Contract\CommentableInterface;
+use App\Contract\KeywordableInterface;
+use App\DataPersister\UserImageUploadDataPersister;
 
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
@@ -78,11 +81,11 @@ use App\Dto\UserPasswordUpdateDto;
             securityMessage: "Vous ne pouvez uploader une image que pour votre propre compte",
             validationContext: ['groups' => ['Default']],
             deserialize: false,
-            processor: UserUpdateDataPersister::class
+            processor: UserImageUploadDataPersister::class
         ),
     ]
 )]
-class User implements UserInterface, PasswordAuthenticatedUserInterface
+class User implements UserInterface, PasswordAuthenticatedUserInterface, CommentableInterface, KeywordableInterface
 {
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     #[Groups(['me:read', 'user:read'])]
@@ -772,5 +775,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public static function getKeywordableType(): string
     {
         return Keywordable::TYPE_USER;
+    }
+
+    /**
+     * Implémentation de CommentableInterface (SOLID - OCP).
+     */
+    public function getCommentableType(): string
+    {
+        return 'user';
     }
 }

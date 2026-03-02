@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Contract\Repository\WalkRepositoryInterface;
 use App\Entity\Walk;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -9,7 +10,7 @@ use Doctrine\Persistence\ManagerRegistry;
 /**
  * @extends ServiceEntityRepository<Walk>
  */
-class WalkRepository extends ServiceEntityRepository
+class WalkRepository extends ServiceEntityRepository implements WalkRepositoryInterface
 {
     public function __construct(ManagerRegistry $registry)
     {

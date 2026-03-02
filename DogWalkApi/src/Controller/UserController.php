@@ -2,19 +2,24 @@
 
 namespace App\Controller;
 
-use App\Repository\UserRepository;
+use App\Contract\Repository\UserRepositoryInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
 
+/**
+ * Dépend de UserRepositoryInterface (abstraction), pas de UserRepository (concret) — DIP.
+ */
 #[Route('/api')]
 class UserController extends AbstractController
 {
+    public function __construct(
+        private readonly UserRepositoryInterface $userRepository
+    ) {}
+
     #[Route('/users/professions', name: 'api_users_professions', methods: ['GET'])]
-    public function getProfessions(UserRepository $userRepository): JsonResponse
+    public function getProfessions(): JsonResponse
     {
-        $professions = $userRepository->findDistinctProfessions();
-        
-        return $this->json($professions);
+        return $this->json($this->userRepository->findDistinctProfessions());
     }
 }

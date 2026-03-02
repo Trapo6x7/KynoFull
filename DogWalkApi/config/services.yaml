@@ -22,11 +22,6 @@ services:
       - "../src/Kernel.php"
   App\DataPersister\UserDataPersister:
     tags: ["api_platform.state_processor"]
-  App\DataPersister\UserUpdateDataPersister:
-    arguments:
-        $entityManager: '@doctrine.orm.entity_manager'
-        $passwordHasher: '@security.user_password_hasher'
-    tags: [ 'api_platform.state_processor' ]
   App\DataPersister\UserPasswordChangeDataPersister:
     arguments:
         $entityManager: '@doctrine.orm.entity_manager'
@@ -58,5 +53,25 @@ services:
     arguments:
       $persistProcessor: '@api_platform.doctrine.orm.state.persist_processor'
       $security: '@security.helper'
-    tags:
-      - { name: 'api_platform.state_processor', resource_class: 'App\Entity\Comment' }
+
+  # -------------------------------------------------------------------------
+  # Bindings interfaces → implémentations concrètes (SOLID - DIP)
+  # Pour changer d'implémentation (ex: S3, InMemory), modifier uniquement ici.
+  # -------------------------------------------------------------------------
+  App\Contract\FileUploaderInterface:
+    alias: App\Service\FileUploader
+
+  App\Contract\KeywordSynchronizerInterface:
+    alias: App\Service\KeywordService
+
+  App\Contract\Repository\UserRepositoryInterface:
+    alias: App\Repository\UserRepository
+
+  App\Contract\Repository\WalkRepositoryInterface:
+    alias: App\Repository\WalkRepository
+
+  App\Contract\Repository\DogRepositoryInterface:
+    alias: App\Repository\DogRepository
+
+  App\DataPersister\UserImageUploadDataPersister:
+    tags: ['api_platform.state_processor']

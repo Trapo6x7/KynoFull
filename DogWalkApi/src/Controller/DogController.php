@@ -3,30 +3,30 @@
 namespace App\Controller;
 
 use ApiPlatform\Symfony\Security\Exception\AccessDeniedException;
+use App\Contract\Repository\DogRepositoryInterface;
 use App\Entity\Dog;
-use App\Repository\DogRepository;
 use App\Service\DogService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
+/**
+ * Respecte DIP : dépend de DogRepositoryInterface (abstraction), pas de DogRepository.
+ * Injection constructeur : dépendances explicites, testables.
+ */
 class DogController extends AbstractController
 {
-    private $dogService;
-    private $dogRepository;
-
-    public function __construct(DogService $dogService, DogRepository $dogRepository)
-    {
-        $this->dogService = $dogService;
-        $this->dogRepository = $dogRepository;
-    }
+    public function __construct(
+        private readonly DogService $dogService,
+        private readonly DogRepositoryInterface $dogRepository
+    ) {}
 
     #[Route('/dogs/{id}', name: 'delete_dog', methods: ['DELETE'])]
     public function deleteDog(int $id): Response
     {
-       /** @var User $user */
-    $user = $this->getUser();
-    $dog = $this->dogRepository->find($id);
+        /** @var \App\Entity\User $user */
+        $user = $this->getUser();
+        $dog = $this->dogRepository->find($id);
 
 
     if (!$dog) {

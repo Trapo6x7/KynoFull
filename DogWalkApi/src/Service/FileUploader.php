@@ -2,11 +2,16 @@
 
 namespace App\Service;
 
+use App\Contract\FileUploaderInterface;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
-class FileUploader
+/**
+ * Implémentation locale (disque) du stockage de fichiers.
+ * Implémente FileUploaderInterface → on peut substituer par S3FileUploader sans changer les appelants (DIP, OCP).
+ */
+class FileUploader implements FileUploaderInterface
 {
     public function __construct(
         private readonly string $targetDirectory,

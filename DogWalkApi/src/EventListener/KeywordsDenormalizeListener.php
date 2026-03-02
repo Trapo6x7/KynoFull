@@ -2,64 +2,57 @@
 
 namespace App\EventListener;
 
-use App\Entity\Dog;
-use App\Entity\User;
+use App\Contract\KeywordableInterface;
+use App\Service\KeywordsRequestExtractor;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
- * Listener pour extraire les keywords de la requête avant la désérialisation
- * et les stocker temporairement pour que le DataPersister puisse les récupérer
+ * Responsabilité unique : écouter l'événement kernel.request et stocker les keywords
+ * extraits dans les attributs de la requête pour les DataPersisters.
+ * La logique d'extraction JSON est déléguée à KeywordsRequestExtractor (SOLID - SRP).
  */
 #[AsEventListener(event: KernelEvents::REQUEST, priority: 10)]
 class KeywordsDenormalizeListener
 {
+    public function __construct(
+        private readonly KeywordsRequestExtractor $extractor
+    ) {}
+
     public function onKernelRequest(RequestEvent $event): void
     {
         $request = $event->getRequest();
-        
-        // Vérifier si c'est une requête API Platform pour créer ou modifier un Dog ou User
+
         if (!$request->attributes->has('_api_resource_class')) {
             return;
         }
 
         $resourceClass = $request->attributes->get('_api_resource_class');
-        
-        // Traiter uniquement les entités Dog et User
-        if (!in_array($resourceClass, [Dog::class, User::class])) {
+
+        // OCP : toute entité implémentant KeywordableInterface est automatiquement supportée
+        if (!is_a($resourceClass, KeywordableInterface::class, true)) {
             return;
         }
 
-        // Récupérer le contenu JSON
-        $content = $request->getContent();
-        if (empty($content)) {
+        $keywords = $this->extractor->extract($request);
+
+        if ($keywords === null) {
             return;
         }
 
-        try {
-            $data = json_decode($content, true);
-            
-            // Si des keywords sont présents dans les données
-            if (isset($data['keywords']) && is_array($data['keywords'])) {
-                // Stocker les keywords dans les attributs de la requête
-                $request->attributes->set('_keywords', $data['keywords']);
-                
-                // Retirer les keywords du contenu pour éviter l'erreur de désérialisation
-                unset($data['keywords']);
-                $request->initialize(
-                    $request->query->all(),
-                    $request->request->all(),
-                    $request->attributes->all(),
-                    $request->cookies->all(),
-                    $request->files->all(),
-                    $request->server->all(),
-                    json_encode($data)
-                );
-            }
-        } catch (\Exception $e) {
-            // Ignorer les erreurs de parsing JSON
-            error_log("KeywordsDenormalizeListener error: " . $e->getMessage());
-        }
+        // Stocker pour les DataPersisters
+        $request->attributes->set('_keywords', $keywords);
+
+        // Retirer du corps JSON pour éviter les erreurs de désérialisation API Platform
+        $request->initialize(
+            $request->query->all(),
+            $request->request->all(),
+            $request->attributes->all(),
+            $request->cookies->all(),
+            $request->files->all(),
+            $request->server->all(),
+            $this->extractor->stripKeywords($request)
+        );
     }
 }

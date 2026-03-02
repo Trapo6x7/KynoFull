@@ -7,9 +7,11 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\State\ProcessorInterface;
 use App\Entity\Dog;
 use App\Entity\User;
-use App\Service\KeywordService;
+use App\Event\DogCreatedEvent;
+use App\Contract\KeywordSynchronizerInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 class DogDataPersister implements ProcessorInterface
@@ -17,8 +19,9 @@ class DogDataPersister implements ProcessorInterface
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly Security $security,
-        private readonly KeywordService $keywordService,
-        private readonly RequestStack $requestStack
+        private readonly KeywordSynchronizerInterface $keywordService,
+        private readonly RequestStack $requestStack,
+        private readonly EventDispatcherInterface $eventDispatcher
     ) {}
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): Dog
@@ -27,11 +30,8 @@ class DogDataPersister implements ProcessorInterface
             /** @var User|null $user */
             $user = $this->security->getUser();
             $data->setUser($user);
-            
-            // Si c'est le premier chien de l'utilisateur, marquer le profil comme complet
-            if ($user instanceof User && !$user->isComplete()) {
-                $user->setIsComplete(true);
-            }
+            // La complétion du profil utilisateur est gérée par UserProfileCompletionListener
+            // via l'événement DogCreatedEvent (SRP : ce persister ne concerne que le chien)
         }
 
         // Récupère les keywords depuis la requête HTTP (stockés par le listener)
@@ -49,6 +49,11 @@ class DogDataPersister implements ProcessorInterface
                 $keywords
             );
             $this->entityManager->flush();
+        }
+
+        // Dispatcher l'événement pour notifier les listeners (ex: UserProfileCompletionListener)
+        if ($operation instanceof Post && $data->getUser() instanceof User) {
+            $this->eventDispatcher->dispatch(new DogCreatedEvent($data, $data->getUser()));
         }
 
         return $data;

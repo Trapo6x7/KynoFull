@@ -8,8 +8,9 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
-use App\DataPersister\WalkDataPersister;
+use App\DataPersister\WalkCreateDataPersister;
 use App\Repository\WalkRepository;
+use App\Contract\CommentableInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
@@ -31,7 +32,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
             denormalizationContext: ['groups' => ['walk:write']],
             security: "is_granted('WALK_CREATE')",
             securityMessage: "Seuls les membres du groupe peuvent créer une promenade",
-            processor: WalkDataPersister::class
+            processor: WalkCreateDataPersister::class
         ),
         new Patch(
             denormalizationContext: ['groups' => ['walk:patch']],
@@ -44,7 +45,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
         )
     ]
 )]
-class Walk
+class Walk implements CommentableInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -122,4 +123,11 @@ class Walk
         return $this;
     }
 
+    /**
+     * Implémentation de CommentableInterface (SOLID - OCP).
+     */
+    public function getCommentableType(): string
+    {
+        return 'walk';
+    }
 }
