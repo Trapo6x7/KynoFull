@@ -1,21 +1,12 @@
 import apiClient from './api';
 import { API_CONFIG } from '../config/api';
 import { Dog, PaginatedResponse } from '../types';
+import type { IDogService, CreateDogData, UpdateDogData } from './interfaces/IDogService';
 
-export interface CreateDogData {
-  name: string;
-  raceId?: number;
-  birthDate?: string;
-  description?: string;
-  gender?: 'male' | 'female';
-  weight?: number;
-  size?: string;
-  keywords?: string[];
-}
+// Re-export pour compatibilité des imports existants
+export type { CreateDogData, UpdateDogData };
 
-export interface UpdateDogData extends Partial<CreateDogData> {}
-
-const dogService = {
+const dogService: IDogService = {
   /**
    * Récupérer tous les chiens de l'utilisateur connecté
    */

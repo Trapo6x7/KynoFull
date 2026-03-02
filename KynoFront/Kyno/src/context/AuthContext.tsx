@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import authService, { User, LoginCredentials, RegisterData } from '../services/authService';
+import type { User } from '../types';
+import type { LoginCredentials, RegisterData } from '../services/interfaces/IAuthService';
 import { isAuthenticated as checkAuth } from '../services/api';
+import { useServices } from './ServicesContext';
 
 interface AuthContextType {
   user: User | null;
@@ -19,6 +21,7 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const { authService } = useServices();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -120,6 +123,32 @@ export const useAuth = (): AuthContextType => {
     throw new Error('useAuth doit être utilisé à l\'intérieur d\'un AuthProvider');
   }
   return context;
+};
+
+// ─── ISP : hooks ségrégés ─────────────────────────────────────────────────────
+/** Lecture seule — état courant de l'utilisateur */
+export interface AuthState {
+  user: User | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+}
+
+/** Actions — mutations d'état d'authentification */
+export interface AuthActions {
+  login: (credentials: LoginCredentials) => Promise<User>;
+  register: (data: RegisterData) => Promise<User>;
+  logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
+}
+
+export const useAuthState = (): AuthState => {
+  const { user, isLoading, isAuthenticated } = useAuth();
+  return { user, isLoading, isAuthenticated };
+};
+
+export const useAuthActions = (): AuthActions => {
+  const { login, register, logout, refreshUser } = useAuth();
+  return { login, register, logout, refreshUser };
 };
 
 export default AuthContext;

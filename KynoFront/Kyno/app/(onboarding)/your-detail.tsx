@@ -51,10 +51,11 @@ export default function YourDetailScreen() {
       console.log('Professions loaded:', data);
       setProfessions(data);
     } catch (error) {
-      console.log('=== ERROR LOADING PROFESSIONS ===');
-      console.log('Error:', error);
-      console.log('Error message:', error.message);
-      console.log('Error response:', error.response);
+      console.warn('=== ERROR LOADING PROFESSIONS ===');
+      console.warn('Error:', error);
+      if (error instanceof Error) {
+        console.warn('Error message:', error.message);
+      }
       setProfessions([]);
     }
   };

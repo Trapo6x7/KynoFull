@@ -1,61 +1,14 @@
 import apiClient, { setToken, removeToken } from './api';
 import { API_CONFIG } from '../config/api';
+import type { User, Dog } from '../types';
+import type { IAuthService, LoginCredentials, RegisterData, UpdateUserData } from './interfaces/IAuthService';
 
-// Types pour l'authentification
-export interface LoginCredentials {
-  email: string;
-  password: string;
-}
-
-export interface RegisterData {
-  email: string;
-  password: string;
-  name: string;
-  birthdate: string;
-  phone?: string;
-}
-
-export interface UpdateUserData {
-  description?: string;
-  gender?: string;
-  profession?: string;
-  latitude?: string;
-  longitude?: string;
-  city?: string;
-  keywords?: string[];
-}
+// Re-export pour compatibilité des imports existants (AuthContext, screens)
+export type { LoginCredentials, RegisterData, UpdateUserData };
+export type { User, Dog };
 
 export interface AuthResponse {
   token: string;
-}
-
-export interface User {
-  id: number;
-  email: string;
-  firstName: string;
-  lastName: string;
-  phone?: string;
-  image?: string;
-  roles: string[];
-  createdAt: string;
-  dogs?: Dog[];
-  is_complete?: boolean;
-  isVerified?: boolean;
-  latitude?: string;
-  longitude?: string;
-}
-
-export interface Dog {
-  id: number;
-  name: string;
-  race?: Race;
-  birthDate?: string;
-  image?: string;
-}
-
-export interface Race {
-  id: number;
-  name: string;
 }
 
 /**
@@ -67,8 +20,8 @@ export const isProfileComplete = (user: User | null): boolean => {
   return user.dogs !== undefined && user.dogs.length > 0;
 };
 
-// Service d'authentification
-const authService = {
+// Service d'authentification — implémente IAuthService
+const authService: IAuthService = {
   /**
    * Connexion de l'utilisateur
    */

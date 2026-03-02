@@ -25,9 +25,16 @@ import {
   Manrope_700Bold,
 } from "@expo-google-fonts/manrope";
 import { useAuth } from "@/src/context/AuthContext";
-import authService from "@/src/services/authService";
 import Colors from "@/src/constants/colors";
 import LoadingScreen from "@/src/screens/LoadingScreen";
+import {
+  validate,
+  emailRules,
+  passwordRules,
+  firstNameRules,
+  birthdateRules,
+  makeConfirmPasswordRule,
+} from "@/src/validation/authValidation";
 
 const { width } = Dimensions.get("window");
 
@@ -57,22 +64,14 @@ export default function RegisterScreen() {
   const validateStep1 = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!email.trim()) {
-      newErrors.email = "L'email est requis";
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = "Email invalide";
-    }
+    const emailError = validate(email, emailRules);
+    if (emailError) newErrors.email = emailError;
 
-    if (!password) {
-      newErrors.password = "Le mot de passe est requis";
-    } else if (password.length < 8) {
-      newErrors.password =
-        "Le mot de passe doit contenir au moins 8 caractères";
-    }
+    const passwordError = validate(password, passwordRules);
+    if (passwordError) newErrors.password = passwordError;
 
-    if (password !== confirmPassword) {
-      newErrors.confirmPassword = "Les mots de passe ne correspondent pas";
-    }
+    const confirmError = validate(confirmPassword, [makeConfirmPasswordRule(password)]);
+    if (confirmError) newErrors.confirmPassword = confirmError;
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -81,18 +80,11 @@ export default function RegisterScreen() {
   const validateStep2 = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!firstName.trim()) {
-      newErrors.firstName = "Le prénom est requis";
-    }
+    const firstNameError = validate(firstName, firstNameRules);
+    if (firstNameError) newErrors.firstName = firstNameError;
 
-    if (!birthdate) {
-      newErrors.birthdate = "La date de naissance est requise";
-    } else {
-      const age = new Date().getFullYear() - birthdate.getFullYear();
-      if (age < 18) {
-        newErrors.birthdate = "Vous devez avoir au moins 18 ans";
-      }
-    }
+    const birthdateError = validate(birthdate, birthdateRules);
+    if (birthdateError) newErrors.birthdate = birthdateError;
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;

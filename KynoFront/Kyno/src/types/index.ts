@@ -1,27 +1,64 @@
 // Types principaux de l'application DogWalk
+// Single source of truth — ne pas redéfinir ces interfaces ailleurs
 
 export interface User {
   id: number;
   email: string;
   firstName: string;
   lastName: string;
+  /** Alias renvoyé par certains endpoints API */
+  name?: string;
   phone?: string;
+  /** URL image unique */
   image?: string;
+  /** Tableau d'images (certains endpoints) */
+  images?: string[];
+  /** Date de naissance (format API : snake_case) */
+  birthdate?: string;
   roles: string[];
   createdAt: string;
   dogs?: Dog[];
   createdGroups?: Group[];
+  // Champs profil/onboarding
+  is_complete?: boolean;
+  isVerified?: boolean;
+  description?: string;
+  gender?: string;
+  profession?: string;
+  city?: string;
+  latitude?: string;
+  longitude?: string;
+  keywords?: string[];
+}
+
+/**
+ * User enrichi avec la distance calculée côté client (Explore).
+ * Extend User — compatible LSP.
+ */
+export interface UserProfile extends User {
+  distance?: number;
 }
 
 export interface Dog {
   id: number;
   name: string;
+  /** Objet race unique (endpoints GET /dogs/:id) */
   race?: Race;
+  /** Tableau de races (endpoints liste, ManyToMany backend) */
+  races?: Race[];
+  /** camelCase côté TS */
   birthDate?: string;
+  /** snake_case renvoyé par l'API */
+  birthdate?: string;
+  /** URL image unique */
   image?: string;
+  /** Tableau d'images (certains endpoints) */
+  images?: string[];
   description?: string;
   gender?: 'male' | 'female';
   weight?: number;
+  size?: string;
+  keywords?: string[];
   owner?: User;
 }
 

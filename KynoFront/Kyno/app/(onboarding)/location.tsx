@@ -10,12 +10,10 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import dogService from '@/src/services/dogService';
-import authService from '@/src/services/authService';
-import emailService from '@/src/services/emailService';
 import { useAuth } from '@/src/context/AuthContext';
+import { useServices } from '@/src/context/ServicesContext';
+import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { useFonts, Manrope_400Regular, Manrope_500Medium, Manrope_600SemiBold } from '@expo-google-fonts/manrope';
 import * as Location from 'expo-location';
 import MapView, { Marker } from 'react-native-maps';
@@ -26,6 +24,8 @@ const IMAGE_SIZE = (width - 80) / 3;
 
 export default function LocationScreen() {
   const { refreshUser, user: currentUser } = useAuth();
+  const { authService, dogService } = useServices();
+  const { redirectAfterAuth } = useAuthRedirect();
   const [images] = useState<(string | null)[]>([null, null, null, null, null, null]);
   const [location, setLocation] = useState<{latitude: number; longitude: number} | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -198,16 +198,17 @@ export default function LocationScreen() {
 
         // Refresh user data
         await refreshUser();
-
-        // Rediriger selon le statut de vérification
-        if (currentUser?.isVerified) {
-          router.replace('/(tabs)/explore');
-        } else {
-          router.replace('/(onboarding)/verify-email');
+        // Récupérer l'utilisateur frais pour déterminer la route
+        try {
+          const freshUser = await authService.getMe();
+          redirectAfterAuth(freshUser);
+        } catch {
+          // Si getMe échoue, l'utilisateur verra la route par défaut
+          redirectAfterAuth({ isVerified: false, is_complete: false } as any);
         }
       } catch (error) {
         console.error('Erreur finalisation onboarding:', error);
-        router.replace('/(tabs)/explore');
+        redirectAfterAuth({ isVerified: false, is_complete: false } as any);
       }
     })();
   };

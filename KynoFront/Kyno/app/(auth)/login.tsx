@@ -20,6 +20,8 @@ import { useFonts, Manrope_400Regular, Manrope_600SemiBold, Manrope_700Bold } fr
 import { useAuth } from '@/src/context/AuthContext';
 import Colors from '@/src/constants/colors';
 import LoadingScreen from '@/src/screens/LoadingScreen';
+import { getPostAuthRoute } from '@/src/utils/navigation';
+import { validate, emailRules, passwordLoginRules } from '@/src/validation/authValidation';
 
 const { width } = Dimensions.get('window');
 
@@ -38,25 +40,21 @@ export default function LoginScreen() {
 
   if (!fontsLoaded) return null;
 
-  const validate = (): boolean => {
+  const validateForm = (): boolean => {
     const newErrors: { email?: string; password?: string } = {};
 
-    if (!email.trim()) {
-      newErrors.email = 'L\'email est requis';
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Email invalide';
-    }
+    const emailError = validate(email, emailRules);
+    if (emailError) newErrors.email = emailError;
 
-    if (!password) {
-      newErrors.password = 'Le mot de passe est requis';
-    }
+    const passwordError = validate(password, passwordLoginRules);
+    if (passwordError) newErrors.password = passwordError;
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleLogin = async () => {
-    if (!validate()) return;
+    if (!validateForm()) return;
 
     try {
       setShowLoading(true);
@@ -65,17 +63,8 @@ export default function LoginScreen() {
       // Attendre un peu pour que le loader soit visible
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Rediriger selon le statut de l'utilisateur
-      if (!loggedInUser.isVerified) {
-        // Email non vérifié -> écran de vérification
-        router.replace('/(onboarding)/verify-email');
-      } else if (!loggedInUser.is_complete) {
-        // Profil incomplet -> onboarding
-        router.replace('/(onboarding)/your-detail');
-      } else {
-        // Tout est OK -> accueil
-        router.replace('/(tabs)/explore');
-      }
+      // Redirection centralisée selon statut (OCP — getPostAuthRoute)
+      router.replace(getPostAuthRoute(loggedInUser));
     } catch (error: any) {
       setShowLoading(false);
       Alert.alert(

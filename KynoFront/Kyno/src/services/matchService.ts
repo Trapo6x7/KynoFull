@@ -1,16 +1,11 @@
 import apiClient from './api';
 import { API_CONFIG } from '../config/api';
+import type { IMatchService, UserMatch } from './interfaces/IMatchService';
 
-export interface UserMatch {
-  id: number;
-  user: { id: number };
-  targetUser: { id: number };
-  action: 'like' | 'dislike';
-  matchScore?: number;
-  createdAt: string;
-}
+// Re-export pour compatibilité des imports existants
+export type { UserMatch };
 
-class MatchService {
+class MatchService implements IMatchService {
   async recordLike(targetUserId: number, userId?: number): Promise<{ match: UserMatch; isMatch: boolean }> {
     const payload = {
       targetUser: `/api/users/${targetUserId}`,

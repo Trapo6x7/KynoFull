@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -8,27 +8,14 @@ import {
   ImageBackground,
   Image,
 } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withDelay,
-  Easing,
-  runOnJS,
-} from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useFonts, Manrope_400Regular, Manrope_500Medium, Manrope_600SemiBold, Manrope_700Bold } from '@expo-google-fonts/manrope';
 import Colors from '@/src/constants/colors';
 import { useAuth } from '@/src/context/AuthContext';
+import { useSplashAnimation } from '@/hooks/useSplashAnimation';
 
 const { width, height } = Dimensions.get('window');
-
-// Durées des animations
-const PHASE1_DURATION = 1500; // Loader 1 affiché
-const ZOOM_DURATION = 800;    // Transition zoom (phase 1 -> 2)
-const PHASE2_DURATION = 1000; // Loader 2 affiché
-const SLIDE_DURATION = 600;   // Transition slide (welcome)
-const FADE_DURATION = 400;    // Fade in des éléments (welcome)
 
 export default function SplashScreen({ onFinish }: { onFinish?: () => void }) {
   const { user } = useAuth();
@@ -38,100 +25,14 @@ export default function SplashScreen({ onFinish }: { onFinish?: () => void }) {
     Manrope_600SemiBold,
     Manrope_700Bold,
   });
-  const [showWelcome, setShowWelcome] = useState(false);
 
-  // Splash animation
-  const zoomScale = useSharedValue(1);
-
-  // Welcome animation
-  const illustrationTranslateY = useSharedValue(0);
-  const illustrationScale = useSharedValue(1.4);
-  const textLogoTranslateY = useSharedValue(0);
-  const textLogoScale = useSharedValue(1.4);
-  const contentOpacity = useSharedValue(0);
-  const buttonsTranslateY = useSharedValue(50);
-
-  const startedRef = useRef(false);
-
-  useEffect(() => {
-    if (startedRef.current) return;
-    startedRef.current = true;
-    // Splash zoom
-    const timer1 = setTimeout(() => {
-      zoomScale.value = withTiming(1.4, {
-        duration: ZOOM_DURATION,
-        easing: Easing.inOut(Easing.ease),
-      });
-    }, PHASE1_DURATION);
-
-    // Après splash, lancer welcome
-    let finishTimer: any;
-    const timer2 = setTimeout(() => {
-      setShowWelcome(true);
-      // Welcome animation
-      illustrationScale.value = withTiming(1.2, {
-        duration: SLIDE_DURATION,
-        easing: Easing.out(Easing.ease),
-      });
-      illustrationTranslateY.value = withTiming(-height * 0.065, {
-        duration: SLIDE_DURATION,
-        easing: Easing.out(Easing.ease),
-      });
-      textLogoTranslateY.value = withTiming(-(width * 0.5 + 140), {
-        duration: SLIDE_DURATION,
-        easing: Easing.out(Easing.ease),
-      });
-      textLogoScale.value = withTiming(0.85, {
-        duration: SLIDE_DURATION,
-        easing: Easing.out(Easing.ease),
-      });
-      contentOpacity.value = withDelay(SLIDE_DURATION * 0.4,
-        withTiming(1, { duration: FADE_DURATION })
-      );
-      buttonsTranslateY.value = withDelay(SLIDE_DURATION * 0.4,
-        withTiming(0, {
-          duration: FADE_DURATION,
-          easing: Easing.out(Easing.back(1.5)),
-        })
-      );
-      // Notify parent that splash/welcome sequence finished (once)
-      finishTimer = setTimeout(() => {
-        try {
-          onFinish && onFinish();
-        } catch (e) {
-          // ignore
-        }
-      }, SLIDE_DURATION + FADE_DURATION + 50);
-    }, PHASE1_DURATION + ZOOM_DURATION + PHASE2_DURATION);
-
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      if (typeof finishTimer !== 'undefined') clearTimeout(finishTimer);
-    };
-  }, []);
-
-  // Splash style
-  const splashAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: zoomScale.value }],
-  }));
-  // Welcome styles
-  const illustrationAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: showWelcome ? illustrationScale.value : zoomScale.value },
-      { translateY: showWelcome ? illustrationTranslateY.value : 0 },
-    ],
-  }));
-  const textLogoAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: showWelcome ? textLogoTranslateY.value : 0 },
-      { scale: showWelcome ? textLogoScale.value : zoomScale.value },
-    ],
-  }));
-  const contentAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: contentOpacity.value,
-    transform: [{ translateY: buttonsTranslateY.value }],
-  }));
+  const {
+    showWelcome,
+    splashAnimatedStyle,
+    illustrationAnimatedStyle,
+    textLogoAnimatedStyle,
+    contentAnimatedStyle,
+  } = useSplashAnimation(onFinish);
 
 
   const handleLogin = () => {

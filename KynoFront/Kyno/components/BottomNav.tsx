@@ -7,7 +7,16 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import Colors from '@/src/constants/colors';
+
+const TAB_ROUTES: Record<string, string> = {
+  explore: '/(tabs)/explore',
+  messages: '/(tabs)/messages',
+  profile: '/me',
+  map: '/(tabs)/map',
+  settings: '/settings',
+};
 
 export type BottomNavTab =
   | 'explore'
@@ -32,7 +41,8 @@ const TABS: TabConfig[] = [
 
 type BottomNavProps = {
   activeTab?: BottomNavTab;
-  onSelectTab?: (tab: BottomNavTab) => void;
+  /** Retourner `true` pour empêcher la navigation par défaut */
+  onSelectTab?: (tab: BottomNavTab) => boolean | void;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -50,7 +60,12 @@ export default function BottomNav({
             styles.navButton,
             activeTab === tab.key ? styles.navButtonActive : undefined,
           ]}
-          onPress={() => onSelectTab?.(tab.key)}
+          onPress={() => {
+            const handled = onSelectTab?.(tab.key);
+            if (handled) return; // navigation custom déjà gérée
+            const route = TAB_ROUTES[tab.key];
+            if (route) router.push(route as any);
+          }}
         >
           <Ionicons
             name={tab.icon}

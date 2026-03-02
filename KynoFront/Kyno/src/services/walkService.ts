@@ -1,30 +1,13 @@
 import apiClient from './api';
 import { API_CONFIG } from '../config/api';
 import { Walk, PaginatedResponse } from '../types';
+import type { IWalkService, CreateWalkData, UpdateWalkData, WalkFilters } from './interfaces/IWalkService';
 
-export interface CreateWalkData {
-  title: string;
-  description?: string;
-  startDate: string;
-  endDate?: string;
-  meetingPoint: string;
-  latitude?: number;
-  longitude?: number;
-  maxParticipants?: number;
-}
+// Re-export pour compatibilité des imports existants
+export type { CreateWalkData, UpdateWalkData, WalkFilters };
 
-export interface UpdateWalkData extends Partial<CreateWalkData> {}
 
-export interface WalkFilters {
-  page?: number;
-  itemsPerPage?: number;
-  startDate?: string;
-  endDate?: string;
-  status?: 'planned' | 'ongoing' | 'completed' | 'cancelled';
-  creatorId?: number;
-}
-
-const walkService = {
+const walkService: IWalkService = {
   /**
    * Récupérer toutes les promenades avec filtres optionnels
    */
