@@ -19,6 +19,7 @@ import PageHeader from "@/components/PageHeader";
 import { MatchCard } from "@/components/MatchCard";
 import { SwipeActions } from "@/components/SwipeActions";
 import { useAuth } from "@/src/context/AuthContext";
+import { useServices } from "@/src/context/ServicesContext";
 import { useMatches, MatchViewModel } from "@/hooks/useMatches";
 import { useSwipe } from "@/hooks/useSwipe";
 import { API_CONFIG } from "@/src/config/api";
@@ -28,12 +29,24 @@ const CARD_WIDTH = width * 0.85;
 
 export default function ExploreScreen() {
   const { user } = useAuth();
-  const { matches, isLoading, loadMatches } = useMatches();
+  const { chatService } = useServices();
+  const { matches, isLoading, loadMatches, removeMatch } = useMatches();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showDogInfo, setShowDogInfo] = useState(false);
   const [showMatchModal, setShowMatchModal] = useState(false);
   const [matchedUser, setMatchedUser] = useState<MatchViewModel | null>(null);
+  const [matchConversationId, setMatchConversationId] = useState<number | null>(null);
+
+  /** Crée (ou récupère) la conversation privée avec le match */
+  const createMatchConversation = useCallback(async (otherUserId: number) => {
+    try {
+      const conv = await chatService.getOrCreateConversation(otherUserId);
+      setMatchConversationId(conv.id);
+    } catch (e) {
+      console.error('Erreur création conversation match:', e);
+    }
+  }, [chatService]);
 
   // Détecter un match venant du profil detail
   const params = useLocalSearchParams<{
@@ -44,8 +57,9 @@ export default function ExploreScreen() {
 
   useEffect(() => {
     if (params.matchedUserId && params.matchedName) {
+      const uid = Number(params.matchedUserId);
       setMatchedUser({
-        id: Number(params.matchedUserId),
+        id: uid,
         name: params.matchedName,
         mainImage: params.matchedImage ?? '',
         distance: '',
@@ -57,6 +71,8 @@ export default function ExploreScreen() {
         dogTotalImages: 0,
         rawImages: [],
       });
+      setMatchConversationId(null);
+      createMatchConversation(uid);
       setShowMatchModal(true);
       // Animer la carte de match (sinon elle reste à scale 0)
       matchScale.setValue(0);
@@ -87,19 +103,12 @@ export default function ExploreScreen() {
   // Remettre l'index à 0 quand un nouveau batch arrive
   useEffect(() => { setCurrentIndex(0); }, [matches]);
 
-  const handleNext = useCallback(() => {
-    if (currentIndex < matches.length - 1) {
-      setCurrentIndex((i) => i + 1);
-    } else {
-      setCurrentIndex(0);
-      loadMatches();
-    }
-  }, [currentIndex, matches.length, loadMatches]);
-
   const handleMatch = useCallback((match: MatchViewModel) => {
     setMatchedUser(match);
+    setMatchConversationId(null);
+    createMatchConversation(match.id);
     setShowMatchModal(true);
-  }, []);
+  }, [createMatchConversation]);
 
   const {
     pan, rotate, matchScale, heartPulse, radarRotation,
@@ -108,7 +117,7 @@ export default function ExploreScreen() {
     matches,
     currentIndex,
     currentUserId: user?.id,
-    onNext: handleNext,
+    onSwiped: removeMatch,
     onMatch: handleMatch,
     onTap: handleViewProfile,
   });
@@ -247,6 +256,31 @@ export default function ExploreScreen() {
               Vous et {matchedUser.name} vous êtes dans la même meute !
             </Text>
             <TouchableOpacity
+              style={styles.matchButtonMsg}
+              onPress={() => {
+                if (!matchConversationId || !matchedUser) return;
+                heartPulse.stopAnimation();
+                heartPulse.setValue(1);
+                matchScale.setValue(0);
+                setShowMatchModal(false);
+                const name = matchedUser.name;
+                const img  = matchedUser.mainImage;
+                const cid  = matchConversationId;
+                setMatchedUser(null);
+                setMatchConversationId(null);
+                router.push({
+                  pathname: '/chat',
+                  params: { conversationId: cid, otherName: name, otherImage: img, isGroup: '0' },
+                } as any);
+              }}
+              disabled={!matchConversationId}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="chatbubble-ellipses-outline" size={18} color="#fff" style={{ marginRight: 6 }} />
+              <Text style={styles.matchButtonMsgText}>Envoyer un message</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
               style={styles.matchButton}
               onPress={() => {
                 heartPulse.stopAnimation();
@@ -254,6 +288,7 @@ export default function ExploreScreen() {
                 matchScale.setValue(0);
                 setShowMatchModal(false);
                 setMatchedUser(null);
+                setMatchConversationId(null);
               }}
             >
               <Text style={styles.matchButtonText}>Continuer</Text>
@@ -290,6 +325,8 @@ const styles = StyleSheet.create({
   matchImage: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: Colors.primary },
   matchHeart: { marginHorizontal: 10 },
   matchText: { fontSize: 16, color: Colors.gray, textAlign: "center", marginBottom: 30 },
-  matchButton: { backgroundColor: Colors.buttonPrimary, paddingVertical: 15, paddingHorizontal: 50, borderRadius: 25 },
+  matchButtonMsg: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: Colors.primaryDark, paddingVertical: 14, paddingHorizontal: 32, borderRadius: 25, marginBottom: 12, minWidth: 220 },
+  matchButtonMsgText: { color: "#fff", fontSize: 15, fontWeight: "600" },
+  matchButton: { backgroundColor: Colors.buttonPrimary, paddingVertical: 14, paddingHorizontal: 50, borderRadius: 25, minWidth: 220, alignItems: "center" },
   matchButtonText: { color: Colors.grayDark, fontSize: 16, fontWeight: "600" },
 });

@@ -100,5 +100,9 @@ export const useMatches = () => {
     }
   }, [user, userService, matchService]);
 
-  return { matches, isLoading, loadMatches };
+  const removeMatch = useCallback((id: number) => {
+    setMatches(prev => prev.filter(m => m.id !== id));
+  }, []);
+
+  return { matches, isLoading, loadMatches, removeMatch, removeMatch };
 };

@@ -18,7 +18,7 @@ const HERO_HEIGHT = height * 0.46;
 const PREVIEW_EXTRA = 54; // extra height below hero so buttons can straddle the edge
 const THUMB_SIZE = (width - 48) / 2;
 
-export type ProfileMode = 'me' | 'match' | 'preview';
+export type ProfileMode = 'me' | 'match' | 'preview' | 'group';
 
 export interface ProfileDetailViewProps {
   mode: ProfileMode;
@@ -44,6 +44,12 @@ export interface ProfileDetailViewProps {
   onEdit?: () => void;
   /** Mode me : ajout/remplacement de la photo principale */
   onAddImage?: () => void;
+  /** Mode group : membres du groupe */
+  members?: { id: number; name: string }[];
+  /** Mode group : ajouter un membre */
+  onAddMember?: () => void;
+  /** Mode group : ouvrir le chat du groupe */
+  onChat?: () => void;
 }
 
 export const ProfileDetailView: React.FC<ProfileDetailViewProps> = ({
@@ -63,6 +69,9 @@ export const ProfileDetailView: React.FC<ProfileDetailViewProps> = ({
   onNext,
   onEdit,
   onAddImage,
+  members = [],
+  onAddMember,
+  onChat,
 }) => {
   const [activeTab, setActiveTab] = useState<'images' | 'apropos'>('images');
 
@@ -128,12 +137,19 @@ export const ProfileDetailView: React.FC<ProfileDetailViewProps> = ({
           </TouchableOpacity>
         )}
 
-        {/* Crayon mode me */}
-        {mode === 'me' && onEdit && (
+        {/* Crayon mode me / Chat mode group */}
+        {((mode === 'me' && onEdit) || (mode === 'group' && onChat)) && (
           <View style={styles.matchActions}>
-            <TouchableOpacity style={[styles.actionBtn, styles.actionEdit]} onPress={onEdit} activeOpacity={0.85}>
-              <Ionicons name="pencil" size={20} color="#fff" />
-            </TouchableOpacity>
+            {mode === 'me' && onEdit && (
+              <TouchableOpacity style={[styles.actionBtn, styles.actionEdit]} onPress={onEdit} activeOpacity={0.85}>
+                <Ionicons name="pencil" size={20} color="#fff" />
+              </TouchableOpacity>
+            )}
+            {mode === 'group' && onChat && (
+              <TouchableOpacity style={[styles.actionBtn, styles.actionEdit]} onPress={onChat} activeOpacity={0.85}>
+                <Ionicons name="chatbubble-ellipses" size={20} color="#fff" />
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
@@ -184,7 +200,14 @@ export const ProfileDetailView: React.FC<ProfileDetailViewProps> = ({
         {activeTab === 'images' ? (
           <ImageGrid images={galleryImages} mode={mode} onAddImage={onAddImage} />
         ) : (
-          <AProposContent name={name} keywords={keywords} description={description} />
+          <AProposContent
+            name={name}
+            keywords={keywords}
+            description={description}
+            mode={mode}
+            members={members}
+            onAddMember={onAddMember}
+          />
         )}
       </ScrollView>
     </View>
@@ -261,11 +284,47 @@ function AProposContent({
   name,
   keywords,
   description,
+  mode,
+  members = [],
+  onAddMember,
 }: {
   name: string;
   keywords: string[];
   description?: string;
+  mode?: ProfileMode;
+  members?: { id: number; name: string }[];
+  onAddMember?: () => void;
 }) {
+  if (mode === 'group') {
+    return (
+      <View style={styles.apropos}>
+        <Text style={styles.aproposSection}>Nom</Text>
+        <Text style={styles.aproposName}>{name}</Text>
+
+        <Text style={[styles.aproposSection, { marginTop: 18 }]}>Membre</Text>
+        <View style={styles.chips}>
+          {members.map((m) => (
+            <View key={m.id} style={styles.chip}>
+              <Text style={styles.chipText}>{m.name}</Text>
+            </View>
+          ))}
+          {onAddMember && (
+            <TouchableOpacity style={[styles.chip, styles.chipAdd]} onPress={onAddMember} activeOpacity={0.8}>
+              <Ionicons name="add" size={16} color={Colors.primaryDark} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {description ? (
+          <>
+            <Text style={[styles.aproposSection, { marginTop: 18 }]}>Description</Text>
+            <Text style={styles.aproposDesc}>{description}</Text>
+          </>
+        ) : null}
+      </View>
+    );
+  }
+
   return (
     <View style={styles.apropos}>
       <Text style={styles.aproposSection}>Nom</Text>
@@ -536,6 +595,14 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 6,
+  },
+  chipAdd: {
+    paddingHorizontal: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: Colors.primaryDark,
+    backgroundColor: 'transparent',
   },
   chipText: {
     fontSize: 13,

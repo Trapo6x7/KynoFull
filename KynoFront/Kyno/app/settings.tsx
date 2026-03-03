@@ -14,6 +14,9 @@ import Colors from '@/src/constants/colors';
 import { useAuth } from '@/src/context/AuthContext';
 import { API_CONFIG } from '@/src/config/api';
 
+const toImageUrl = (filename: string) =>
+  `${API_CONFIG.BASE_URL}/uploads/images/${filename}`;
+
 export default function SettingsScreen() {
   const { user, logout } = useAuth();
   const [privateMode, setPrivateMode] = useState(false);
@@ -23,6 +26,17 @@ export default function SettingsScreen() {
       ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim()
       : (user as any).name ?? ''
     : '';
+
+  const userAge = user?.birthdate
+    ? (() => {
+        const birth = new Date(user.birthdate);
+        const today = new Date();
+        let age = today.getFullYear() - birth.getFullYear();
+        const m = today.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+        return age;
+      })()
+    : null;
 
   const handleLogout = async () => {
     try {
@@ -42,27 +56,30 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Profile Section */}
-        <View style={styles.profileSection}>
-          <View style={styles.profileImageContainer}>
-            {user?.image && user.image.length > 0 ? (
-              <Image
-                source={{ uri: `${API_CONFIG.BASE_URL}/uploads/images/${user.image[0]}` }}
-                style={styles.profileImage}
-              />
-            ) : (
-              <View style={styles.profileImagePlaceholder}>
-                <Ionicons name="person" size={60} color={Colors.gray} />
-              </View>
-            )}
-          </View>
-          <Text style={styles.profileName}>
-            {displayName || 'Utilisateur'}
-          </Text>
-          <Text style={styles.profileEmail}>{user?.email}</Text>
+      {/* Profile Section — always visible */}
+      <View style={styles.profileSection}>
+        <View style={styles.profileImageContainer}>
+          {user?.images?.[0] ? (
+            <Image
+              source={{ uri: toImageUrl(user.images[0]) }}
+              style={styles.profileImage}
+            />
+          ) : (
+            <View style={styles.profileImagePlaceholder}>
+              <Ionicons name="person" size={60} color={Colors.gray} />
+            </View>
+          )}
         </View>
+        <Text style={styles.profileName}>
+          {displayName || 'Utilisateur'}
+        {userAge !== null && (
+          <Text style={styles.profileAge}>, {userAge} ans</Text>
+        )}
+        </Text>
+        <Text style={styles.profileEmail}>{user?.email}</Text>
+      </View>
 
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Settings Options */}
         <View style={styles.section}>
           <TouchableOpacity style={styles.menuItem}>
@@ -135,6 +152,7 @@ export default function SettingsScreen() {
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutText}>DECONNEXION</Text>
         </TouchableOpacity>
+        <View style={{ height: 30 }} />
       </ScrollView>
     </View>
   );
@@ -161,7 +179,9 @@ const styles = StyleSheet.create({
   },
   profileSection: {
     alignItems: 'center',
-    paddingVertical: 30,
+    paddingTop: 20,
+    paddingBottom: 24,
+    backgroundColor: Colors.backgroundLight,
   },
   profileImageContainer: {
     width: 120,
@@ -188,6 +208,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.grayDark,
     marginBottom: 5,
+  },
+  profileAge: {
+    fontSize: 13,
+    color: Colors.primary,
+    fontWeight: '600',
+    marginBottom: 2,
   },
   profileEmail: {
     fontSize: 14,

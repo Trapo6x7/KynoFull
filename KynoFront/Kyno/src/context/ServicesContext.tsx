@@ -5,12 +5,14 @@ import { userService } from '../services/userService';
 import matchService from '../services/matchService';
 import dogService from '../services/dogService';
 import walkService from '../services/walkService';
+import chatService from '../services/chatService';
 
 import type { IAuthService } from '../services/interfaces/IAuthService';
 import type { IUserService } from '../services/interfaces/IUserService';
 import type { IMatchService } from '../services/interfaces/IMatchService';
 import type { IDogService } from '../services/interfaces/IDogService';
 import type { IWalkService } from '../services/interfaces/IWalkService';
+import type { IChatService } from '../services/interfaces/IChatService';
 
 // ─── Contrat du contexte (DIP : dépend des abstractions) ─────────────────────
 export interface ServicesContextType {
@@ -19,6 +21,7 @@ export interface ServicesContextType {
   matchService: IMatchService;
   dogService: IDogService;
   walkService: IWalkService;
+  chatService: IChatService;
 }
 
 const ServicesContext = createContext<ServicesContextType | null>(null);
@@ -46,6 +49,7 @@ const defaultServices: ServicesContextType = {
   matchService,
   dogService,
   walkService,
+  chatService,
 };
 
 export const ServicesProvider: React.FC<ServicesProviderProps> = ({

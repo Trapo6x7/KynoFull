@@ -1,42 +1,42 @@
-import React from 'react';
+import React from "react";
 import {
   View,
   TouchableOpacity,
   StyleSheet,
   StyleProp,
   ViewStyle,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import Colors from '@/src/constants/colors';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import Colors from "@/src/constants/colors";
 
 const TAB_ROUTES: Record<string, string> = {
-  explore: '/(tabs)/explore',
-  messages: '/(tabs)/messages',
-  profile: '/me',
-  map: '/(tabs)/map',
-  settings: '/settings',
+  explore: "/(tabs)/explore",
+  messages: "/(tabs)/messages",
+  profile: "/me",
+  map: "/(tabs)/map",
+  settings: "/settings",
 };
 
 export type BottomNavTab =
-  | 'explore'
-  | 'messages'
-  | 'profile'
-  | 'map'
-  | 'settings';
+  | "explore"
+  | "messages"
+  | "profile"
+  | "map"
+  | "settings";
 
 type TabConfig = {
   key: BottomNavTab;
-  icon: React.ComponentProps<typeof Ionicons>['name'];
+  icon: React.ComponentProps<typeof Ionicons>["name"];
   size: number;
 };
 
 const TABS: TabConfig[] = [
-  { key: 'explore', icon: 'paw-outline', size: 24 },
-  { key: 'messages', icon: 'chatbubble-outline', size: 24 },
-  { key: 'profile', icon: 'person-outline', size: 24 },
-  { key: 'map', icon: 'location-outline', size: 24 },
-  { key: 'settings', icon: 'settings-outline', size: 24 },
+  { key: "explore", icon: "paw-outline", size: 24 },
+  { key: "messages", icon: "chatbubble-outline", size: 24 },
+  { key: "profile", icon: "person-outline", size: 24 },
+  { key: "map", icon: "location-outline", size: 24 },
+  { key: "settings", icon: "settings-outline", size: 24 },
 ];
 
 type BottomNavProps = {
@@ -53,7 +53,7 @@ export default function BottomNav({
 }: BottomNavProps) {
   return (
     <View style={[styles.bottomNav, style]}>
-      {TABS.map(tab => (
+      {TABS.map((tab) => (
         <TouchableOpacity
           key={tab.key}
           style={[
@@ -80,20 +80,23 @@ export default function BottomNav({
 
 const styles = StyleSheet.create({
   bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
     paddingVertical: 5,
     paddingHorizontal: 10,
     backgroundColor: Colors.buttonPrimary,
     borderRadius: 40,
     marginBottom: 20,
     marginHorizontal: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8, // Android
   },
   navButton: {
     padding: 10,
   },
-  navButtonActive: {
-  
-  },
+  navButtonActive: {},
 });

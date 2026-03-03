@@ -46,6 +46,10 @@ export const API_CONFIG = {
     
     // Matches
     USER_MATCHES: '/api/user_matches',
+
+    // Chat
+    CONVERSATIONS: '/api/conversations',
+    MESSAGES: '/api/messages',
   },
   TIMEOUT: 30000, // 30 secondes
 };

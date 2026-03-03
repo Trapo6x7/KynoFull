@@ -9,8 +9,10 @@ interface UseSwipeOptions {
   matches: MatchViewModel[];
   currentIndex: number;
   currentUserId?: number;
-  onNext: () => void;
+  onNext?: () => void;
   onMatch: (match: MatchViewModel) => void;
+  /** Appelé quand un swipe est enregistré — id du profil swipé. Remplace onNext quand fourni. */
+  onSwiped?: (id: number) => void;
   /** Appelé quand l'utilisateur tape sur la carte (mouvement < 5px) */
   onTap?: () => void;
 }
@@ -21,6 +23,7 @@ export const useSwipe = ({
   currentUserId,
   onNext,
   onMatch,
+  onSwiped,
   onTap,
 }: UseSwipeOptions) => {
   const { matchService } = useServices();
@@ -52,7 +55,7 @@ export const useSwipe = ({
       }),
       Animated.timing(rotate, { toValue: -20, duration: 300, useNativeDriver: false }),
     ]).start(() => {
-      onNext();
+      if (onSwiped && targetUserId) { onSwiped(targetUserId); } else { onNext?.(); }
       if (targetUserId) {
         matchService
           .recordDislike(targetUserId, currentUserId)
@@ -73,7 +76,7 @@ export const useSwipe = ({
       }),
       Animated.timing(rotate, { toValue: 20, duration: 300, useNativeDriver: false }),
     ]).start(() => {
-      onNext();
+      if (onSwiped && targetUserId) { onSwiped(targetUserId); } else { onNext?.(); }
       if (targetUserId) {
         matchService
           .recordLike(targetUserId, currentUserId)

@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.textDark ?? '#222',
+    color: Colors.black ?? '#222',
   },
   saveBtn: {
     backgroundColor: Colors.primary,
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: Colors.textDark ?? '#222',
+    color: Colors.black ?? '#222',
   },
   textArea: {
     minHeight: 100,
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
   pickerTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.textDark ?? '#222',
+    color: Colors.black ?? '#222',
   },
   pickerScroll: { maxHeight: 340 },
   keywordsGrid: {

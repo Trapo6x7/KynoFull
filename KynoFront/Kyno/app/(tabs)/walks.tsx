@@ -5,8 +5,10 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 import Colors from '@/src/constants/colors';
+import BottomNav from '@/components/BottomNav';
 
 export default function WalksScreen() {
   return (
@@ -27,6 +29,10 @@ export default function WalksScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <View style={styles.navWrapper}>
+        <BottomNav />
+      </View>
     </View>
   );
 }
@@ -34,6 +40,7 @@ export default function WalksScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Colors.primaryLight,
   },
   header: {
     paddingTop: 60,
@@ -80,5 +87,10 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 14,
     fontWeight: '600',
+  },
+  navWrapper: {
+    paddingHorizontal: 16,
+    paddingBottom: Platform.OS === 'ios' ? 0 : 12,
+    backgroundColor: Colors.primaryLight,
   },
 });
