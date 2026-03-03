@@ -21,6 +21,7 @@ export const Colors = {
   error: '#F44336', // Rouge pour les erreurs
 
   // Backgrounds
+  background: '#fdf7fa',     // Rose très doux (fond général)
   backgroundPink: '#FFCDD2',
   backgroundLight: '#FFF0F3',
   

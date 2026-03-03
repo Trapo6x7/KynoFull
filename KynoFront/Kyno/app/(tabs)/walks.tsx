@@ -40,7 +40,7 @@ export default function WalksScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.background,
   },
   header: {
     paddingTop: 60,
@@ -91,6 +91,6 @@ const styles = StyleSheet.create({
   navWrapper: {
     paddingHorizontal: 16,
     paddingBottom: Platform.OS === 'ios' ? 0 : 12,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.background,
   },
 });

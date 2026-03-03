@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+﻿import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -418,7 +418,7 @@ export default function MatchSettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.backgroundLight,
+    backgroundColor: Colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingHorizontal: 20,
     paddingBottom: 16,
-    backgroundColor: Colors.backgroundLight,
+    backgroundColor: 'transparent',
   },
   backButton: {
     width: 36,
@@ -520,11 +520,6 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: Colors.primary,
     top: 4,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
-    elevation: 4,
   },
   // Modal
   modalOverlay: {
@@ -575,11 +570,6 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     paddingVertical: 16,
     alignItems: 'center',
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
   },
   applyButtonText: {
     fontSize: 16,

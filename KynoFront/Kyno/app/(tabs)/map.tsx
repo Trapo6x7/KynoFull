@@ -1,17 +1,18 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   Platform,
   StatusBar,
   ActivityIndicator,
 } from 'react-native';
+import { router } from 'expo-router';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import * as Location from 'expo-location';
+import Entypo from '@expo/vector-icons/Entypo';
 import { Ionicons } from '@expo/vector-icons';
 import * as NavigationBar from 'expo-navigation-bar';
 
@@ -327,13 +328,9 @@ export default function MapScreen() {
               <SpotMarker category={m.category} />
             </Marker>
           ))}
-          {/* Marqueur position utilisateur — zIndex élevé pour être au-dessus */}
-          <Marker coordinate={{ latitude: region.latitude, longitude: region.longitude }} anchor={{ x: 0.5, y: 0.5 }} zIndex={999}>
-            <View style={styles.userMarkerWrap} collapsable={false}>
-              <View style={styles.userMarker} collapsable={false}>
-                <Ionicons name="paw" size={18} color={Colors.white} />
-              </View>
-            </View>
+          {/* Marqueur position utilisateur */}
+          <Marker coordinate={{ latitude: region.latitude, longitude: region.longitude }} zIndex={999} anchor={{ x: 0.5, y: 1 }}>
+            <Entypo name="location-pin" size={42} color={Colors.primaryDark} />
           </Marker>
         </MapView>
 
@@ -372,13 +369,17 @@ export default function MapScreen() {
   // ─── Vue normale (header + carte + spots) ────────────────────────────────
   return (
     <View style={styles.root}>
-      <StatusBar backgroundColor={Colors.primaryLight} barStyle="dark-content" />
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
-      <SafeAreaView style={styles.safeTop}>
-        <View style={[styles.header, { paddingTop: STATUS_H > 0 ? STATUS_H + 8 : 16 }]}>
-          <Text style={styles.title}>Lieux de promenade</Text>
-        </View>
-      </SafeAreaView>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.headerBack} onPress={() => router.back()} activeOpacity={0.7}>
+          <Ionicons name="chevron-back" size={24} color={Colors.grayDark} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Lieux de promenade</Text>
+        <TouchableOpacity style={styles.headerRight} onPress={() => loadSpots(region.latitude, region.longitude)} activeOpacity={0.7}>
+          <Ionicons name="refresh-outline" size={22} color={Colors.primary} />
+        </TouchableOpacity>
+      </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
@@ -405,19 +406,15 @@ export default function MapScreen() {
                   <SpotMarker category={m.category} size={26} />
                 </Marker>
               ))}
-              {/* Marqueur position utilisateur — zIndex élevé pour être au-dessus */}
-              <Marker coordinate={{ latitude: region.latitude, longitude: region.longitude }} anchor={{ x: 0.5, y: 0.5 }} zIndex={999}>
-                <View style={styles.userMarkerWrap} collapsable={false}>
-                  <View style={styles.userMarker} collapsable={false}>
-                    <Ionicons name="paw" size={16} color={Colors.white} />
-                  </View>
-                </View>
+              {/* Marqueur position utilisateur */}
+              <Marker coordinate={{ latitude: region.latitude, longitude: region.longitude }} zIndex={999} anchor={{ x: 0.5, y: 1 }}>
+                <Entypo name="location-pin" size={36} color={Colors.primary} />
               </Marker>
             </MapView>
           )}
           {/* Hint "agrandir" */}
           <View style={styles.expandHint}>
-            <Ionicons name="expand-outline" size={16} color="#fff" />
+            <Ionicons name="expand-outline" size={16} color={Colors.primary} />
           </View>
         </TouchableOpacity>
 
@@ -443,20 +440,13 @@ export default function MapScreen() {
 
       {/* ── Section spots (scroll indépendant) ── */}
       <View style={styles.spotsSection}>
-        <Text style={styles.sectionTitle}>
-          {spotsLoading
-            ? 'Recherche des spots…'
-            : spotsError
-            ? 'Impossible de charger les spots'
-            : `${filteredSpots.length} spot${filteredSpots.length > 1 ? 's' : ''} près de vous`
-          }
-        </Text>
+  
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 90 }}>
           {spotsLoading ? (
             <View style={styles.spotsLoader}>
               <ActivityIndicator size="large" color={Colors.primary} />
-              {/* <Text style={styles.spotsLoaderText}>Chargement des spots près de chez vous…</Text> */}
+              <Text style={styles.spotsLoaderText}>Chargement des spots près de chez vous…</Text>
             </View>
           ) : spotsError ? (
             <TouchableOpacity
@@ -490,20 +480,36 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: Colors.primaryLight,
-  },
-  safeTop: {
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.background,
   },
   header: {
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-    backgroundColor: Colors.primaryLight,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingTop: STATUS_H + 12,
   },
-  title: {
-    fontSize: 22,
+  headerBack: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'left',
+    fontSize: 18,
+    paddingStart: 15,
     fontWeight: '700',
     color: Colors.grayDark,
+  },
+  headerRight: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // ── ScrollView (carte + filtres uniquement)
@@ -526,11 +532,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 14,
     height: 200,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
   },
   map: {
     width: '100%',
@@ -545,8 +546,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     right: 10,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    borderRadius: 6,
+    backgroundColor: Colors.primaryLight,
+    borderRadius: 10,
     padding: 4,
   },
 
@@ -555,27 +556,9 @@ const styles = StyleSheet.create({
     padding: 5,
     overflow: 'visible',
   },
-  userMarker: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: Colors.primary,
-    borderWidth: 3,
-    borderColor: Colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-    // Pas d'elevation ici — elle crée un clipPath Android qui coupe le cercle
-  },
   spotMarker: {
-    borderWidth: 2.5,
-    borderColor: Colors.white,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
-    elevation: 4,
   },
 
   // ── Filtres
@@ -629,11 +612,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginBottom: 10,
-    elevation: 2,
-    shadowColor: '#F48FB1',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
   },
   thumb: {
     width: 52,
@@ -713,10 +691,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
   },
 });

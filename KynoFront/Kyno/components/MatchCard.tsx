@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import {
   View,
   Text,
@@ -113,11 +113,6 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     backgroundColor: Colors.white,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
     position: 'absolute',
   },
   cardTop: {

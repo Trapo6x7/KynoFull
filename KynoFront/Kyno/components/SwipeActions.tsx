@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/src/constants/colors';
@@ -41,11 +41,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.grayLight,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
   },
   likeButton: {
     backgroundColor: Colors.buttonPrimary,

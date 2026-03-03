@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import {
   View,
   TouchableOpacity,
@@ -89,11 +89,6 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     marginBottom: 20,
     marginHorizontal: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8, // Android
   },
   navButton: {
     padding: 10,

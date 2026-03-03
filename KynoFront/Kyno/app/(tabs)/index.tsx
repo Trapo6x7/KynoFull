@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import Colors from '@/src/constants/colors';
 
 export default function HomeScreen() {
   // Écran vide ou message neutre
@@ -14,7 +15,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: Colors.background,
   },
   text: {
     textAlign: 'center',

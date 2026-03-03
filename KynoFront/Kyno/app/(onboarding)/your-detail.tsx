@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -363,9 +363,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.grayLight,
     marginTop: 1,
     maxHeight: 200,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
   },
   suggestionItem: {
     paddingVertical: 12,

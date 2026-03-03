@@ -141,7 +141,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Comment
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['groupeRole:read', 'groupRequest:read', 'groupRequest:readAll', 'me:read', 'user:read', 'user:id', 'group:details', 'comment:read', 'conversation:read'])]
+    #[Groups(['groupeRole:read', 'groupRequest:read', 'groupRequest:readAll', 'me:read', 'user:read', 'user:id', 'group:details', 'comment:read', 'conversation:read', 'message:read'])]
     private ?int $id = null;
 
     #[Assert\NotBlank]
@@ -168,7 +168,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Comment
     #[Assert\NotBlank]
     #[Assert\Length(min: 3)]
     #[ORM\Column(length: 255)]
-    #[Groups(['user:write', 'me:read', 'user:read', 'user:patch', 'group:details', 'groupeRole:read', 'groupRequest:read', 'groupRequest:readAll', 'comment:read', 'conversation:read'])]
+    #[Groups(['user:write', 'me:read', 'user:read', 'user:patch', 'group:details', 'groupeRole:read', 'groupRequest:read', 'groupRequest:readAll', 'comment:read', 'conversation:read', 'message:read'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 50, nullable: true)]
@@ -228,7 +228,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Comment
     private ?\DateTimeImmutable $deletedAt;
 
     #[ORM\Column(type: 'json', nullable: true)]
-    #[Groups(['user:write', 'user:image', 'me:read', 'user:read', 'conversation:read'])]
+    #[Groups(['user:write', 'user:image', 'me:read', 'user:read', 'conversation:read', 'message:read'])]
     private ?array $images = null;
 
     #[Groups(['user:write', 'me:read'])]

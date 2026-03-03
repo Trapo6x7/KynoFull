@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -79,6 +79,15 @@ export default function ChatScreen() {
 
   useEffect(() => { loadMessages(); }, [loadMessages]);
 
+  // ── Polling toutes les 5 s pour voir les nouveaux messages ───────────────
+  useEffect(() => {
+    if (!conversationId) return;
+    const interval = setInterval(() => {
+      chatService.getMessages(conversationId).then(data => setMessages(data)).catch(() => {});
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [conversationId]);
+
   useEffect(() => {
     if (messages.length > 0) {
       setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);
@@ -106,7 +115,14 @@ export default function ChatScreen() {
 
   // ── Render bubble ─────────────────────────────────────────────────────────
   const renderMessage = useCallback(({ item }: { item: Message }) => {
-    const isMe = item.sender.id === myId;
+    // sender peut être un objet { id, name, ... } ou une IRI string "/api/users/5"
+    const senderId: number | undefined =
+      typeof item.sender === 'object' && item.sender !== null
+        ? (item.sender as any).id
+        : typeof item.sender === 'string'
+          ? parseInt((item.sender as string).split('/').pop() ?? '', 10)
+          : undefined;
+    const isMe = senderId === myId;
 
     const avatarEl = isMe ? (
       user?.image ? (
@@ -279,7 +295,7 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.background,
     paddingTop: STATUS_H,
   },
   flex: { flex: 1 },
@@ -299,11 +315,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 3,
   },
   headerTitle: {
     flex: 1,
@@ -382,11 +393,6 @@ const styles = StyleSheet.create({
   bubbleThem: {
     backgroundColor: '#fff',
     borderBottomLeftRadius: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 4,
-    elevation: 1,
   },
   bubbleText:     { fontSize: 14, lineHeight: 20 },
   bubbleTextMe:   { color: '#fff' },
@@ -401,7 +407,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     paddingBottom: Platform.OS === 'ios' ? 20 : 12,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.background,
   },
   inputPill: {
     flexDirection: 'row',
@@ -411,11 +417,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
     gap: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 3,
   },
   micIcon: { marginRight: 2 },
   input: {
@@ -449,11 +450,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 6,
     minWidth: 180,
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 12,
-    elevation: 8,
   },
   menuItem: {
     flexDirection: 'row',

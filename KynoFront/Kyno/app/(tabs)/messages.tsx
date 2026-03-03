@@ -22,13 +22,13 @@ import { useAuth } from '@/src/context/AuthContext';
 import { API_CONFIG } from '@/src/config/api';
 import type { Conversation } from '@/src/services/interfaces/IChatService';
 
-// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Helpers -------------------------------------------------------------------
 
 function timeAgo(dateStr: string | null): string {
   if (!dateStr) return '';
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'Ã€ l\'instant';
+  if (mins < 1) return "A l'instant";
   if (mins < 60) return `${mins} min`;
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours} h`;
@@ -41,15 +41,17 @@ function getInitials(name?: string | null): string {
   return name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2);
 }
 
-// â”€â”€â”€ ConversationItem â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- ConversationItem ----------------------------------------------------------
 
 interface ConversationItemProps {
   conversation: Conversation;
   myId: number;
   onPress: () => void;
+  otherId?: number;
+  otherImage?: string;
 }
 
-function ConversationItem({ conversation, myId, onPress }: ConversationItemProps) {
+function ConversationItem({ conversation, myId, onPress, otherId, otherImage }: ConversationItemProps) {
   const isGroup = conversation.type === 'group';
 
   let displayName: string;
@@ -64,8 +66,7 @@ function ConversationItem({ conversation, myId, onPress }: ConversationItemProps
     displayName = other?.name ?? other?.firstName ?? 'Utilisateur';
     const img = other?.images?.[0];
     avatarUri = img ? `${API_CONFIG.BASE_URL}/uploads/images/${img}` : undefined;
-    // unreadCount1 = messages envoyés par participant1 non lus par participant2
-    // → moi (participant1) dois voir les messages non lus de l'AUTRE, soit unreadCount2
+    // unreadCount2 = messages non lus par moi (participant1)
     unread = isP1 ? conversation.unreadCount2 : conversation.unreadCount1;
   }
 
@@ -78,39 +79,52 @@ function ConversationItem({ conversation, myId, onPress }: ConversationItemProps
             <Ionicons name="people" size={26} color={Colors.primaryDark} />
           </View>
         ) : avatarUri ? (
-          <Image source={{ uri: avatarUri }} style={styles.avatar} />
+          <TouchableOpacity
+            onPress={() => otherId && router.push({ pathname: '/profile-detail', params: { userId: String(otherId), name: displayName, mainImage: otherImage ?? '' } } as any)}
+            activeOpacity={0.8}
+          >
+            <Image source={{ uri: avatarUri }} style={styles.avatar} />
+          </TouchableOpacity>
         ) : (
-          <View style={[styles.avatar, styles.avatarFallback]}>
-            <Text style={styles.avatarInitials}>{getInitials(displayName)}</Text>
-          </View>
-        )}
-        {unread > 0 && (
-          <View style={styles.unreadBadge}>
-            <Text style={styles.unreadText}>{unread > 9 ? '9+' : unread}</Text>
-          </View>
+          <TouchableOpacity
+            onPress={() => otherId && router.push({ pathname: '/profile-detail', params: { userId: String(otherId), name: displayName, mainImage: otherImage ?? '' } } as any)}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.avatar, styles.avatarFallback]}>
+              <Text style={styles.avatarInitials}>{getInitials(displayName)}</Text>
+            </View>
+          </TouchableOpacity>
         )}
       </View>
 
       {/* Contenu */}
       <View style={styles.cardContent}>
         <View style={styles.cardTopRow}>
-          <Text style={styles.cardName} numberOfLines={1}>{displayName}</Text>
+          <Text style={[styles.cardName, { marginRight: 8 }]} numberOfLines={1}>{displayName}</Text>
           <Text style={styles.cardTime}>{timeAgo(conversation.lastMessageAt)}</Text>
         </View>
         <Text style={styles.cardPreview} numberOfLines={2} ellipsizeMode="tail">
-          {conversation.lastMessageContent ?? 'Commencer la conversationâ€¦'}
+          {conversation.lastMessageContent ?? 'Commencer la conversation'}
         </Text>
       </View>
 
-      {/* FlÃ¨che */}
-      <View style={styles.cardArrow}>
-        <Ionicons name="chevron-forward" size={16} color={Colors.primaryDark} />
+      {/* Badge droite */}
+      <View style={styles.cardBadgeWrapper}>
+        {!conversation.lastMessageContent ? (
+          <View style={styles.newMatchBadge}>
+            <Text style={styles.newMatchText}>Nouveau</Text>
+          </View>
+        ) : unread > 0 ? (
+          <View style={styles.unreadBadge}>
+            <Text style={styles.unreadText}>{unread > 9 ? '9+' : unread}</Text>
+          </View>
+        ) : null}
       </View>
     </TouchableOpacity>
   );
 }
 
-// â”€â”€â”€ MessagesScreen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- MessagesScreen ------------------------------------------------------------
 
 export default function MessagesScreen() {
   const { chatService } = useServices();
@@ -145,34 +159,41 @@ export default function MessagesScreen() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
-      {/* â”€â”€ Header â”€â”€ */}
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerBack} onPress={() => router.back()} activeOpacity={0.7}>
-          <Ionicons name="chevron-back" size={24} color="#333" />
+          <Ionicons name="chevron-back" size={24} color={Colors.grayDark} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Message</Text>
         <TouchableOpacity style={styles.headerSearch} activeOpacity={0.7}>
-          <Ionicons name="search-outline" size={22} color="#333" />
+          <Ionicons name="search-outline" size={22} color={Colors.primary} />
         </TouchableOpacity>
       </View>
 
-      {/* â”€â”€ Liste â”€â”€ */}
+      {/* Liste */}
       {loading ? (
         <ActivityIndicator size="large" color={Colors.primary} style={styles.loader} />
       ) : conversations.length === 0 ? (
         <View style={styles.emptyState}>
           <Ionicons name="chatbubble-outline" size={56} color={Colors.grayLight} />
           <Text style={styles.emptyTitle}>Aucune conversation</Text>
-          <Text style={styles.emptySubtitle}>Likez des profils pour commencer Ã  discuter !</Text>
+          <Text style={styles.emptySubtitle}>Likez des profils pour commencer a discuter !</Text>
         </View>
       ) : (
         <FlatList
           data={conversations}
           keyExtractor={item => String(item.id)}
-          renderItem={({ item }) => (
+            renderItem={({ item }) => {
+              const isP1r = item.participant1?.id === myId;
+              const otherUser = isP1r ? item.participant2 : item.participant1;
+              const img = otherUser?.images?.[0];
+              const otherImageUri = img ? `${API_CONFIG.BASE_URL}/uploads/images/${img}` : undefined;
+              return (
             <ConversationItem
               conversation={item}
               myId={myId}
+              otherId={otherUser?.id}
+              otherImage={otherImageUri}
               onPress={() => {
                 const isGroup = item.type === 'group';
                 const isP1 = item.participant1?.id === myId;
@@ -188,74 +209,63 @@ export default function MessagesScreen() {
                 } as any);
               }}
             />
-          )}
+              );
+            }}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         />
       )}
 
-      {/* â”€â”€ Bottom Nav â”€â”€ */}
+      {/* Bottom Nav */}
       <BottomNav activeTab="messages" style={styles.bottomNav} />
     </SafeAreaView>
   );
 }
 
-// â”€â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Styles --------------------------------------------------------------------
 
 const STATUS_H = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0;
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.background,
     paddingTop: STATUS_H,
   },
 
-  // â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
+    paddingVertical: 12,
   },
   headerBack: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 3,
   },
   headerTitle: {
     flex: 1,
-    textAlign: 'center',
+    textAlign: 'left',
     fontSize: 18,
+    paddingStart: 15,
     fontWeight: '700',
-    color: '#1a1a1a',
+    color: Colors.grayDark,
   },
   headerSearch: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 3,
   },
 
   loader: { marginTop: 60 },
 
-  // â”€â”€ Empty state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Empty state
   emptyState: {
     flex: 1,
     alignItems: 'center',
@@ -276,31 +286,27 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // â”€â”€ List â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // List
   listContent: {
     paddingHorizontal: 16,
     paddingTop: 4,
     paddingBottom: 12,
-    gap: 10,
   },
 
-  // â”€â”€ Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Card
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    backgroundColor: Colors.background,
+    borderRadius: 0,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
     gap: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0d6e8',
   },
 
-  // â”€â”€ Avatar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Avatar
   avatarWrapper: { position: 'relative' },
   avatar: {
     width: 54,
@@ -322,27 +328,43 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.primaryDark,
   },
-  unreadBadge: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    backgroundColor: Colors.primaryDark,
-    borderRadius: 10,
-    minWidth: 18,
-    height: 18,
+
+  // Badges
+  cardBadgeWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
-    borderWidth: 1.5,
-    borderColor: '#fff',
+  },
+  unreadBadge: {
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
   },
   unreadText: {
     color: '#fff',
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
   },
+  newMatchBadge: {
+    backgroundColor: Colors.primary,
+    borderRadius: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  newMatchText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
+    textAlign: 'center',
+    lineHeight: 14,
+  },
 
-  // â”€â”€ Card content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Card content
   cardContent: {
     flex: 1,
     gap: 3,
@@ -357,7 +379,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: '#1a1a1a',
-    marginRight: 8,
   },
   cardTime: {
     fontSize: 12,
@@ -369,19 +390,8 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
 
-  // â”€â”€ Arrow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  cardArrow: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: Colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // â”€â”€ Bottom nav â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Bottom nav
   bottomNav: {
     marginTop: 'auto',
   },
 });
-

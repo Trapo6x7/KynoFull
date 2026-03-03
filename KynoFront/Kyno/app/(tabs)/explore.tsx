@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+﻿import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -301,7 +301,7 @@ export default function ExploreScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.backgroundLight },
+  container: { flex: 1, backgroundColor: Colors.background },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", paddingBottom: 80 },
   radarImage: { width: 200, height: 200, position: "absolute" },
   loadingDog: { width: 150, height: 150 },
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
   emptyDog: { width: 120, height: 120 },
   emptyText: { fontSize: 14, color: Colors.gray, textAlign: "center", lineHeight: 22 },
   cardContainer: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 20 },
-  card: { width: CARD_WIDTH, borderRadius: 30, backgroundColor: Colors.white, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 10, position: "absolute" },
+  card: { width: CARD_WIDTH, borderRadius: 30, backgroundColor: Colors.white, overflow: "hidden", position: "absolute" },
   cardBehind: { zIndex: 1 },
   profileHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6, paddingHorizontal: 5 },
   profileImage: { marginTop: 6, width: 50, height: 50, borderRadius: 25, borderWidth: 2, borderColor: Colors.white },
