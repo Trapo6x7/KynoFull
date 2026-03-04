@@ -10,6 +10,22 @@ security:
         class: App\Entity\User
         property: email
   firewalls:
+    dev:
+      pattern: ^/(_(profiler|wdt)|css|images|js)/
+      security: false
+
+    admin:
+      pattern: ^/admin
+      lazy: true
+      provider: app_user_provider
+      form_login:
+        login_path: admin_login
+        check_path: admin_login
+        default_target_path: admin
+      logout:
+        path: admin_logout
+        target: admin_login
+
     login:
       pattern: ^/api/login
       stateless: true
@@ -17,19 +33,17 @@ security:
         check_path: /api/login_check
         success_handler: lexik_jwt_authentication.handler.authentication_success
         failure_handler: lexik_jwt_authentication.handler.authentication_failure
+
     api:
       pattern: ^/api
       stateless: true
       jwt: ~
-    dev:
-      pattern: ^/(_(profiler|wdt)|css|images|js)/
-      security: false
 
     main:
       lazy: true
       provider: app_user_provider
       logout:
-        path:   /logout
+        path: /logout
         target: /
 
       # activate different ways to authenticate
