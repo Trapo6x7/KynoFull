@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -12,14 +12,16 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/src/constants/colors';
 import { useAuth } from '@/src/context/AuthContext';
+import { useServices } from '@/src/context/ServicesContext';
 import { API_CONFIG } from '@/src/config/api';
 
 const toImageUrl = (filename: string) =>
   `${API_CONFIG.BASE_URL}/uploads/images/${filename}`;
 
 export default function SettingsScreen() {
-  const { user, logout } = useAuth();
-  const [privateMode, setPrivateMode] = useState(false);
+  const { user, logout, refreshUser } = useAuth();
+  const { authService } = useServices();
+  const [privateMode, setPrivateMode] = useState(user?.privateMode ?? false);
 
   const displayName = user
     ? (user.firstName || user.lastName)
@@ -72,9 +74,9 @@ export default function SettingsScreen() {
         </View>
         <Text style={styles.profileName}>
           {displayName || 'Utilisateur'}
-        {userAge !== null && (
-          <Text style={styles.profileAge}>, {userAge} ans</Text>
-        )}
+          {userAge !== null && (
+            <Text>, {userAge} ans</Text>
+          )}
         </Text>
         <Text style={styles.profileEmail}>{user?.email}</Text>
       </View>
@@ -82,7 +84,7 @@ export default function SettingsScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Settings Options */}
         <View style={styles.section}>
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/settings/match-settings')}>
             <View>
               <Text style={styles.menuTitle}>Paramètres de match</Text>
               <Text style={styles.menuSubtitle}>Gérer vos préférences de matching</Text>
@@ -92,7 +94,7 @@ export default function SettingsScreen() {
 
           <View style={styles.divider} />
 
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/settings/location')}>
             <View>
               <Text style={styles.menuTitle}>Ma localisation</Text>
               <Text style={styles.menuSubtitle}>Modifier votre position</Text>
@@ -102,7 +104,7 @@ export default function SettingsScreen() {
 
           <View style={styles.divider} />
 
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/settings/edit-profile')}>
             <View>
               <Text style={styles.menuTitle}>Editer profil</Text>
               <Text style={styles.menuSubtitle}>Modifier vos informations</Text>
@@ -112,7 +114,7 @@ export default function SettingsScreen() {
 
           <View style={styles.divider} />
 
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/settings/invite-friends')}>
             <View>
               <Text style={styles.menuTitle}>Invitez des amis</Text>
               <Text style={styles.menuSubtitle}>Partagez l'application</Text>
@@ -126,11 +128,21 @@ export default function SettingsScreen() {
           <View style={styles.menuItem}>
             <View style={{ flex: 1 }}>
               <Text style={styles.menuTitle}>Mode privé</Text>
-              <Text style={styles.menuSubtitle}>Masquer votre profil</Text>
+              <Text style={styles.menuSubtitle}>Masquer votre profil aux autres utilisateurs</Text>
             </View>
             <Switch
               value={privateMode}
-              onValueChange={setPrivateMode}
+              onValueChange={async (value) => {
+                setPrivateMode(value);
+                if (user) {
+                  try {
+                    await authService.updateUser(user.id, { privateMode: value });
+                    await refreshUser();
+                  } catch {
+                    setPrivateMode(!value); // rollback on error
+                  }
+                }
+              }}
               trackColor={{ false: Colors.grayLight, true: Colors.primary }}
               thumbColor={Colors.white}
             />
@@ -139,7 +151,7 @@ export default function SettingsScreen() {
 
         {/* About */}
         <View style={styles.section}>
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/settings/about')}>
             <View>
               <Text style={styles.menuTitle}>A propos</Text>
               <Text style={styles.menuSubtitle}>Informations sur l'application</Text>

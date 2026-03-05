@@ -1,13 +1,43 @@
-{% extends '@EasyAdmin/page/content.html.twig' %}
+{% extends 'admin/base.html.twig' %}
 
-{% block content_title %}
-    <h1>DogWalk Administration</h1>
-{% endblock %}
-
-{% block main %}
-    <div class="row">
-        <div class="col-md-12">
-            <p>Bienvenue dans l'interface d'administration DogWalk.</p>
+{% block content %}
+    <h2>📊 Dashboard</h2>
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h1>{{ userCount }}</h1>
+                    <p>Users</p>
+                    <a href="{{ path('admin_users') }}" class="btn btn-primary">View</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h1>{{ dogCount }}</h1>
+                    <p>Dogs</p>
+                    <a href="{{ path('admin_dogs') }}" class="btn btn-primary">View</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h1>{{ matchCount }}</h1>
+                    <p>Matches</p>
+                    <a href="{{ path('admin_matches') }}" class="btn btn-primary">View</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h1>{{ convCount }}</h1>
+                    <p>Conversations</p>
+                    <a href="{{ path('admin_conversations') }}" class="btn btn-primary">View</a>
+                </div>
+            </div>
         </div>
     </div>
 {% endblock %}

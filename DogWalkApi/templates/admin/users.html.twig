@@ -1,0 +1,27 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block content %}
+    <h2>👥 Users ({{ users|length }})</h2>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Email</th>
+                <th>Name</th>
+                <th>Verified</th>
+                <th>Created</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.id }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.name }}</td>
+                <td>{{ user.isVerified ? '✅' : '❌' }}</td>
+                <td>{{ user.createdAt|date('Y-m-d') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

@@ -13,6 +13,7 @@ import Colors from "@/src/constants/colors";
 const TAB_ROUTES: Record<string, string> = {
   explore: "/(tabs)/explore",
   messages: "/(tabs)/messages",
+  likes: "/(tabs)/likes",
   profile: "/me",
   map: "/(tabs)/map",
   settings: "/settings",
@@ -21,6 +22,7 @@ const TAB_ROUTES: Record<string, string> = {
 export type BottomNavTab =
   | "explore"
   | "messages"
+  | "likes"
   | "profile"
   | "map"
   | "settings";
@@ -33,10 +35,10 @@ type TabConfig = {
 
 const TABS: TabConfig[] = [
   { key: "explore", icon: "paw-outline", size: 24 },
+  { key: "map", icon: "location-outline", size: 24 },
+  { key: "likes", icon: "heart-outline", size: 24 },
   { key: "messages", icon: "chatbubble-outline", size: 24 },
   { key: "profile", icon: "person-outline", size: 24 },
-  { key: "map", icon: "location-outline", size: 24 },
-  { key: "settings", icon: "settings-outline", size: 24 },
 ];
 
 type BottomNavProps = {

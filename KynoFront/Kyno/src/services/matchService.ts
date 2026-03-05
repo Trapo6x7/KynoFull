@@ -17,19 +17,14 @@ class MatchService implements IMatchService {
       const response = await apiClient.post(API_CONFIG.ENDPOINTS.USER_MATCHES, payload);
       
       // Vérifier si c'est un match mutuel (targetUser a déjà liké userId)
-      const allMatches = await this.getMyMatches();
-      console.log('MATCH: Checking mutual match - userId:', userId, 'targetUserId:', targetUserId);
-      console.log('MATCH: All matches:', allMatches);
-      
-      const isMatch = allMatches.some((m: any) => {
-        const mUserId = typeof m.user === 'object' ? m.user.id : m.user;
-        const mTargetId = typeof m.targetUser === 'object' ? m.targetUser.id : m.targetUser;
-        const matches = mUserId === targetUserId && mTargetId === userId && m.action === 'like';
-        console.log('MATCH: Checking match - mUserId:', mUserId, 'mTargetId:', mTargetId, 'action:', m.action, 'matches:', matches);
-        return matches;
-      });
-      
-      console.log('MATCH: isMatch result:', isMatch);
+      const isMatch = userId != null && await (async () => {
+        const allMatches = await this.getMyMatches();
+        return allMatches.some((m: any) => {
+          const mUserId = Number(typeof m.user === 'object' ? m.user.id : m.user);
+          const mTargetId = Number(typeof m.targetUser === 'object' ? m.targetUser.id : m.targetUser);
+          return mUserId === targetUserId && mTargetId === userId && m.action === 'like';
+        });
+      })();
       return { match: response.data, isMatch };
     } catch (error: any) {
       console.error('MATCH: recordLike ERROR status:', error.response?.status);
@@ -67,11 +62,32 @@ class MatchService implements IMatchService {
     return data['hydra:member'] || data['member'] || (Array.isArray(data) ? data : []);
   }
 
-  async getSeenUserIds(): Promise<number[]> {
-    const response = await apiClient.get(`${API_CONFIG.ENDPOINTS.USER_MATCHES}/seen`);
-    const data: any = response.data;
-    if (Array.isArray(data)) return data.map((n: any) => Number(n));
-    return [];
+  async getSeenUserIds(myId: number): Promise<number[]> {
+    // Dérivé de getMyMatches() — évite le conflit URL avec API Platform
+    const all = await this.getMyMatches();
+    console.log('[matchService] getSeenUserIds all matches:', all);
+    const result = all
+      .filter((m: any) => {
+        const userId = Number(typeof m.user === 'object' ? m.user.id : m.user);
+        return userId === myId;
+      })
+      .map((m: any) => Number(typeof m.targetUser === 'object' ? m.targetUser.id : m.targetUser));
+    console.log('[matchService] getSeenUserIds result for myId', myId, ':', result);
+    return result;
+  }
+
+  async getLikesReceived(myId: number): Promise<number[]> {
+    const all = await this.getMyMatches();
+    return all
+      .filter((m: any) => {
+        const targetId = typeof m.targetUser === 'object' ? m.targetUser.id : m.targetUser;
+        const userId = typeof m.user === 'object' ? m.user.id : m.user;
+        return Number(targetId) === myId && m.action === 'like' && Number(userId) !== myId;
+      })
+      .map((m: any) => {
+        const userId = typeof m.user === 'object' ? m.user.id : m.user;
+        return Number(userId);
+      });
   }
 }
 

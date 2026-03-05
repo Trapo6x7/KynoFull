@@ -29,6 +29,7 @@ export interface User {
   latitude?: string;
   longitude?: string;
   keywords?: string[];
+  privateMode?: boolean;
 }
 
 /**

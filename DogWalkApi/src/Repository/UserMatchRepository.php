@@ -38,12 +38,26 @@ class UserMatchRepository extends ServiceEntityRepository
     public function getUsersAlreadySeen(User $user): array
     {
         $results = $this->createQueryBuilder('um')
-            ->select('IDENTITY(um.targetUser)')
+            ->select('IDENTITY(um.targetUser) as seenId')
             ->where('um.user = :user')
             ->setParameter('user', $user)
             ->getQuery()
             ->getScalarResult();
 
-        return array_column($results, 1);
+        return array_column($results, 'seenId');
+    }
+
+    /**
+     * Retourne tous les UserMatch où l'utilisateur est émetteur OU receveur.
+     * Utilisé par UserMatchCollectionProvider pour isoler les données par user.
+     */
+    public function findAllInvolvingUser(User $user): array
+    {
+        return $this->createQueryBuilder('um')
+            ->where('um.user = :user OR um.targetUser = :user')
+            ->setParameter('user', $user)
+            ->orderBy('um.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
     }
 }

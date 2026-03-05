@@ -1,0 +1,33 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block content %}
+    <h2>💬 Conversations ({{ conversations|length }})</h2>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Participants</th>
+                <th>Last Message</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for conv in conversations %}
+            <tr>
+                <td>{{ conv.id }}</td>
+                <td>{{ conv.type }}</td>
+                <td>
+                    {% if conv.type == 'private' %}
+                        {{ conv.participant1.name }} ↔ {{ conv.participant2.name }}
+                    {% else %}
+                        {{ conv.group.name }}
+                    {% endif %}
+                </td>
+                <td>{{ conv.lastMessageContent|slice(0, 50) }}...</td>
+                <td>{{ conv.lastMessageAt ? conv.lastMessageAt|date('Y-m-d H:i') : 'N/A' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

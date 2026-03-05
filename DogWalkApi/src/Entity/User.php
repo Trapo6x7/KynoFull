@@ -270,6 +270,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Comment
     #[Groups(['user:write', 'me:read', 'user:patch'])]
     private ?string $city = null;
 
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    #[Groups(['me:read', 'user:patch'])]
+    private bool $privateMode = false;
+
     /**
      * @var Collection<int, Keywordable>
      * Les associations de keywords pour cet utilisateur (via table polymorphique)
@@ -735,6 +739,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Comment
     public function setCity(string $city): static
     {
         $this->city = $city;
+
+        return $this;
+    }
+
+    public function isPrivateMode(): bool
+    {
+        return $this->privateMode;
+    }
+
+    public function setPrivateMode(bool $privateMode): static
+    {
+        $this->privateMode = $privateMode;
 
         return $this;
     }

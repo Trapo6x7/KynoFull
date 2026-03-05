@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import SettingsLayout from '@/src/components/SettingsLayout';
 
 import { useAuth } from '@/src/context/AuthContext';
 import { useServices } from '@/src/context/ServicesContext';
@@ -87,24 +88,8 @@ export default function EditProfileScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SettingsLayout title="Modifier mon profil">
       <StatusBar barStyle="dark-content" />
-
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
-          <Ionicons name="chevron-back" size={24} color={Colors.primaryDark} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Modifier mon profil</Text>
-        <TouchableOpacity onPress={handleSave} style={styles.saveBtn} activeOpacity={0.7} disabled={isSaving}>
-          {isSaving ? (
-            <ActivityIndicator size="small" color={Colors.white} />
-          ) : (
-            <Text style={styles.saveBtnText}>Enregistrer</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         {/* Prénom */}
         <View style={styles.fieldGroup}>
@@ -188,6 +173,17 @@ export default function EditProfileScreen() {
         </View>
       </ScrollView>
 
+      {/* Bouton Enregistrer */}
+      <View style={styles.saveContainer}>
+        <TouchableOpacity onPress={handleSave} style={[styles.saveBtn, isSaving && { opacity: 0.7 }]} activeOpacity={0.8} disabled={isSaving}>
+          {isSaving ? (
+            <ActivityIndicator size="small" color={Colors.white} />
+          ) : (
+            <Text style={styles.saveBtnText}>ENREGISTRER</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+
       {/* Keyword picker modal */}
       <Modal visible={showKeywordPicker} transparent animationType="none" onRequestClose={() => setShowKeywordPicker(false)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowKeywordPicker(false)}>
@@ -225,50 +221,28 @@ export default function EditProfileScreen() {
           </Animated.View>
         </TouchableOpacity>
       </Modal>
-    </View>
+    </SettingsLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  saveContainer: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    paddingBottom: 32,
     backgroundColor: Colors.background,
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 0,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.grayLight,
-    backgroundColor: Colors.white,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.black ?? '#222',
   },
   saveBtn: {
     backgroundColor: Colors.primary,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    minWidth: 100,
+    borderRadius: 30,
+    paddingVertical: 16,
     alignItems: 'center',
   },
   saveBtnText: {
     color: Colors.white,
-    fontWeight: '600',
-    fontSize: 14,
+    fontWeight: '700',
+    fontSize: 15,
+    letterSpacing: 1,
   },
 
   scroll: { flex: 1 },

@@ -1,0 +1,27 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block content %}
+    <h2>👨‍👩‍👧‍👦 Groups ({{ groups|length }})</h2>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Creator</th>
+                <th>Mixed</th>
+                <th>Created</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for group in groups %}
+            <tr>
+                <td>{{ group.id }}</td>
+                <td>{{ group.name }}</td>
+                <td>{{ group.creator.name }}</td>
+                <td>{{ group.mixed ? '✅' : '❌' }}</td>
+                <td>{{ group.createdAt|date('Y-m-d') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

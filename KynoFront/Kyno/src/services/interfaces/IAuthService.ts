@@ -22,6 +22,7 @@ export interface UpdateUserData {
   longitude?: string;
   city?: string;
   keywords?: string[];
+  privateMode?: boolean;
 }
 
 export interface IAuthService {

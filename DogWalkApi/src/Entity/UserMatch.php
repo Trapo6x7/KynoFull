@@ -23,7 +23,8 @@ use Symfony\Component\Serializer\Attribute\Groups;
         ),
         new GetCollection(
             normalizationContext: ['groups' => ['match:read', 'user:id']],
-            security: "is_granted('ROLE_USER')"
+            security: "is_granted('ROLE_USER')",
+            provider: \App\State\Provider\UserMatchCollectionProvider::class
         ),
         new Get(
             normalizationContext: ['groups' => ['match:read']],

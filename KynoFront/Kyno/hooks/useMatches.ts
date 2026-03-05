@@ -78,25 +78,41 @@ export const useMatches = () => {
   const [matches, setMatches] = useState<MatchViewModel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadMatches = useCallback(async () => {
-    setIsLoading(true);
+  const loadMatches = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       // Fetch en parallèle — Promise.all avec fallback sur les ids vus
       const [allUsers, seenIds] = await Promise.all([
         userService.getAllUsers(),
-        matchService.getSeenUserIds().catch(() => [] as number[]),
+        user?.id
+          ? matchService.getSeenUserIds(user.id).catch((e) => { console.warn('[useMatches] getSeenUserIds error:', e); return [] as number[]; })
+          : Promise.resolve([] as number[]),
       ]);
 
+      console.log('[useMatches] allUsers count:', allUsers.length, '| allUsers ids:', allUsers.map(u => u.id));
+      console.log('[useMatches] seenIds raw:', seenIds);
+
       const seenSet = new Set(seenIds.map(Number));
+      console.log('[useMatches] seenSet:', [...seenSet]);
+      console.log('[useMatches] currentUser id:', user?.id);
+
       const candidates = allUsers
-        .filter((u) => u.id !== user?.id && !seenSet.has(u.id))
+        .filter((u) => {
+          const isSelf = u.id === user?.id;
+          const isSeen = seenSet.has(u.id);
+          const isPrivate = u.privateMode === true;
+          console.log(`[useMatches] user ${u.id} (${u.name ?? u.firstName}) -> isSelf=${isSelf} isSeen=${isSeen} isPrivate=${isPrivate} -> keep=${!isSelf && !isSeen && !isPrivate}`);
+          return !isSelf && !isSeen && !isPrivate;
+        })
         .map((u) => toMatchViewModel(u, user));
 
+      console.log('[useMatches] candidates count:', candidates.length, '| ids:', candidates.map(c => c.id));
       setMatches(candidates);
-    } catch {
+    } catch (e) {
+      console.error('[useMatches] loadMatches error:', e);
       setMatches([]);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, [user, userService, matchService]);
 
@@ -104,5 +120,5 @@ export const useMatches = () => {
     setMatches(prev => prev.filter(m => m.id !== id));
   }, []);
 
-  return { matches, isLoading, loadMatches, removeMatch, removeMatch };
+  return { matches, isLoading, loadMatches, removeMatch };
 };

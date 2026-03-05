@@ -30,6 +30,10 @@ class UserMatchDataPersister implements ProcessorInterface
             if (!$targetUser) {
                 throw new \InvalidArgumentException('Target user is required');
             }
+
+            if ($user->getId() === $targetUser->getId()) {
+                throw new \InvalidArgumentException('Cannot like yourself');
+            }
             
             $action = $data->getAction();
             if (!$action) {

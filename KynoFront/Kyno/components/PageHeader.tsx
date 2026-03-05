@@ -10,6 +10,7 @@ import {
   ImageStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import Colors from '@/src/constants/colors';
 
 const DEFAULT_LEFT_IMAGE = require('@/assets/images/dogillustration2.png');
@@ -39,11 +40,13 @@ export default function PageHeader({
   rightButtonStyle,
   leftImageStyle,
 }: PageHeaderProps) {
+  const router = useRouter();
+
   return (
     <View style={[styles.header, style]}>
       <TouchableOpacity
         style={[styles.headerIconLeft, leftButtonStyle]}
-        onPress={onPressLeft}
+        onPress={onPressLeft ?? (() => router.push('/me'))}
         activeOpacity={0.8}
       >
         <Image

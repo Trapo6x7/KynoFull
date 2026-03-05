@@ -18,6 +18,7 @@ import * as NavigationBar from 'expo-navigation-bar';
 
 import Colors from '@/src/constants/colors';
 import BottomNav from '@/components/BottomNav';
+import TabScreenLayout from '@/src/components/TabScreenLayout';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 const STATUS_H = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0;
@@ -314,7 +315,7 @@ export default function MapScreen() {
   // ─── Vue plein écran ──────────────────────────────────────────────────────
   if (fullscreen) {
     return (
-      <View style={styles.root}>
+      <View style={{ flex: 1, backgroundColor: Colors.background }}>
         <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
 
         <MapView
@@ -329,8 +330,8 @@ export default function MapScreen() {
             </Marker>
           ))}
           {/* Marqueur position utilisateur */}
-          <Marker coordinate={{ latitude: region.latitude, longitude: region.longitude }} zIndex={999} anchor={{ x: 0.5, y: 1 }}>
-            <Entypo name="location-pin" size={42} color={Colors.primaryDark} />
+          <Marker coordinate={{ latitude: region.latitude, longitude: region.longitude }} zIndex={1000} anchor={{ x: 0.5, y: 1 }}>
+            <Entypo name="location-pin" size={42} color={Colors.primary} />
           </Marker>
         </MapView>
 
@@ -368,18 +369,14 @@ export default function MapScreen() {
 
   // ─── Vue normale (header + carte + spots) ────────────────────────────────
   return (
-    <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.headerBack} onPress={() => router.back()} activeOpacity={0.7}>
-          <Ionicons name="chevron-back" size={24} color={Colors.grayDark} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Lieux de promenade</Text>
+    <TabScreenLayout
+      title="Lieux de promenade"
+      rightAction={
         <TouchableOpacity style={styles.headerRight} onPress={() => loadSpots(region.latitude, region.longitude)} activeOpacity={0.7}>
           <Ionicons name="refresh-outline" size={22} color={Colors.primary} />
         </TouchableOpacity>
-      </View>
+      }
+    >
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
@@ -472,38 +469,12 @@ export default function MapScreen() {
       </View>
 
       <BottomNav activeTab="map" style={styles.navWrapperFloat} />
-    </View>
+    </TabScreenLayout>
   );
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingTop: STATUS_H + 12,
-  },
-  headerBack: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'left',
-    fontSize: 18,
-    paddingStart: 15,
-    fontWeight: '700',
-    color: Colors.grayDark,
-  },
   headerRight: {
     width: 36,
     height: 36,
@@ -636,7 +607,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
-    backgroundColor: Colors.primaryLight,
+    // backgroundColor: Colors.primaryLight,
   },
   categoryText: {
     fontSize: 11,

@@ -42,6 +42,8 @@ export interface ProfileDetailViewProps {
   onNext?: () => void;
   /** Mode me : édition */
   onEdit?: () => void;
+  /** Mode me : ouvrir les paramètres (3 points) */
+  onSettings?: () => void;
   /** Mode me : ajout/remplacement de la photo principale */
   onAddImage?: () => void;
   /** Mode group : membres du groupe */
@@ -68,6 +70,7 @@ export const ProfileDetailView: React.FC<ProfileDetailViewProps> = ({
   onDislike,
   onNext,
   onEdit,
+  onSettings,
   onAddImage,
   members = [],
   onAddMember,
@@ -137,12 +140,12 @@ export const ProfileDetailView: React.FC<ProfileDetailViewProps> = ({
           </TouchableOpacity>
         )}
 
-        {/* Crayon mode me / Chat mode group */}
-        {((mode === 'me' && onEdit) || (mode === 'group' && onChat)) && (
+        {/* 3 points mode me / Chat mode group */}
+        {((mode === 'me' && onSettings) || (mode === 'group' && onChat)) && (
           <View style={styles.matchActions}>
-            {mode === 'me' && onEdit && (
-              <TouchableOpacity style={[styles.actionBtn, styles.actionEdit]} onPress={onEdit} activeOpacity={0.85}>
-                <Ionicons name="pencil" size={20} color="#fff" />
+            {mode === 'me' && onSettings && (
+              <TouchableOpacity style={[styles.actionBtn, styles.actionEdit]} onPress={onSettings} activeOpacity={0.85}>
+                <Ionicons name="ellipsis-horizontal" size={20} color="#fff" />
               </TouchableOpacity>
             )}
             {mode === 'group' && onChat && (
@@ -207,6 +210,7 @@ export const ProfileDetailView: React.FC<ProfileDetailViewProps> = ({
             mode={mode}
             members={members}
             onAddMember={onAddMember}
+            onEdit={onEdit}
           />
         )}
       </ScrollView>
@@ -287,6 +291,7 @@ function AProposContent({
   mode,
   members = [],
   onAddMember,
+  onEdit,
 }: {
   name: string;
   keywords: string[];
@@ -294,6 +299,7 @@ function AProposContent({
   mode?: ProfileMode;
   members?: { id: number; name: string }[];
   onAddMember?: () => void;
+  onEdit?: () => void;
 }) {
   if (mode === 'group') {
     return (
@@ -328,7 +334,14 @@ function AProposContent({
   return (
     <View style={styles.apropos}>
       <Text style={styles.aproposSection}>Nom</Text>
-      <Text style={styles.aproposName}>{name}</Text>
+      <View style={styles.aproposNameRow}>
+        <Text style={styles.aproposName}>{name}</Text>
+        {mode === 'me' && onEdit && (
+          <TouchableOpacity style={styles.editNameBtn} onPress={onEdit} activeOpacity={0.7}>
+            <Ionicons name="pencil-outline" size={16} color={Colors.white} />
+          </TouchableOpacity>
+        )}
+      </View>
 
       <Text style={[styles.aproposSection, { marginTop: 18 }]}>À propos</Text>
       <View style={styles.chips}>
@@ -423,8 +436,8 @@ const styles = StyleSheet.create({
   /* Bouton crayon mode me */
   matchActions: {
     position: 'absolute',
-    bottom: 16,
-    right: 16,
+    top: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) + 8 : 52,
+    right: 14,
   },
   actionBtn: {
     width: 48,
@@ -435,6 +448,19 @@ const styles = StyleSheet.create({
   },
   actionEdit: {
     backgroundColor: Colors.primary,
+  },
+
+  editNameBtn: {
+    padding: 8,
+    backgroundColor: Colors.primary,
+    color: Colors.white,
+    borderRadius: 32,
+  },
+
+  aproposNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
 
   /* Actions preview — à cheval entre le bas de la photo et la bande blanche */
@@ -464,11 +490,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.buttonPrimary,
   },
 
-  /* Bouton toggle sous-profil (haut-droite) */
+  /* Bouton toggle sous-profil (bas-droite) */
   subProfileBtn: {
     position: 'absolute',
-    top: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) + 8 : 52,
-    right: 14,
+    bottom: 16,
+    right: 16,
     width: 40,
     height: 40,
     borderRadius: 20,

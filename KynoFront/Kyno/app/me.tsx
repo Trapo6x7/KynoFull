@@ -71,7 +71,8 @@ export default function MeScreen() {
         keywords={showDog ? dogKeywords : ownerKeywords}
         description={showDog ? dog?.description : user?.description}
         onBack={() => router.back()}
-        onEdit={() => router.push('/edit-profile')}
+        onEdit={() => router.push('/settings/edit-profile')}
+        onSettings={() => router.push('/settings' as any)}
         onAddImage={handleAddImage}
         /* Paw toggle — même système que la carte */
         onSubProfile={dog ? () => setShowDog((v) => !v) : undefined}

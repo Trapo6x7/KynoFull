@@ -1,0 +1,25 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block content %}
+    <h2>🏷️ Keywords ({{ keywords|length }})</h2>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Created</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for keyword in keywords %}
+            <tr>
+                <td>{{ keyword.id }}</td>
+                <td>{{ keyword.name }}</td>
+                <td><span class="badge bg-primary">{{ keyword.category }}</span></td>
+                <td>{{ keyword.createdAt|date('Y-m-d') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

@@ -78,12 +78,12 @@ export default function ProfileScreen() {
       <ProfileDetailView
         mode="me"
         type="owner"
-        name={user ? `${user.firstName}` : 'Mon profil'}
+        name={user ? (user.name ?? user.firstName) : 'Mon profil'}
         images={ownerImages}
         keywords={ownerKeywords}
         description={user?.description}
-        onBack={handleLogout}
-        onEdit={() => router.push('/settings')}
+        onBack={router.canGoBack() ? () => router.back() : handleLogout}
+        onEdit={() => router.push('/settings/edit-profile')}
         onSubProfile={dog ? () => setShowDog(true) : undefined}
         subProfileIcon="paw-outline"
         subProfileLabel={dog?.name}

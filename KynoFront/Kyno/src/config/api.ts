@@ -46,6 +46,7 @@ export const API_CONFIG = {
     
     // Matches
     USER_MATCHES: '/api/user_matches',
+    USER_MATCHES_SEEN: '/api/user_matches_seen',
 
     // Chat
     CONVERSATIONS: '/api/conversations',

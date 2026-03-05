@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from "react";
+﻿import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import * as NavigationBar from "expo-navigation-bar";
 import { router, useLocalSearchParams } from "expo-router";
 import BottomNav from "@/components/BottomNav";
-import PageHeader from "@/components/PageHeader";
+import TabScreenLayout from "@/src/components/TabScreenLayout";
 import { MatchCard } from "@/components/MatchCard";
 import { SwipeActions } from "@/components/SwipeActions";
 import { useAuth } from "@/src/context/AuthContext";
@@ -133,28 +133,60 @@ export default function ExploreScreen() {
     return () => anim.stop();
   }, [isLoading]);
 
-  // Masquer la nav Android
+  // Masquer la nav Android + refresh silencieux au retour sur l'écran
+  const hasLoaded = useRef(false);
   useFocusEffect(
     React.useCallback(() => {
       if (Platform.OS === "android") NavigationBar.setVisibilityAsync("hidden");
+      if (hasLoaded.current) {
+        loadMatches(true); // refresh silencieux, sans animation radar
+      }
       return () => { if (Platform.OS === "android") NavigationBar.setVisibilityAsync("visible"); };
-    }, []),
+    }, [loadMatches]),
   );
 
   // Chargement initial (délai 2s pour l'animation radar)
   useEffect(() => {
-    const t = setTimeout(loadMatches, 2000);
+    const t = setTimeout(() => { hasLoaded.current = true; loadMatches(); }, 2000);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const spin = radarRotation.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
 
+  const exploreLeft = (
+    <TouchableOpacity style={styles.headerDogBtn} onPress={() => router.push('/me' as any)} activeOpacity={0.8}>
+      <Image source={require("@/assets/images/dogillustration2.png")} style={styles.headerDogIcon} resizeMode="contain" />
+    </TouchableOpacity>
+  );
+  const exploreRight = (
+    <TouchableOpacity style={styles.headerOptionsBtn} onPress={() => router.push('/settings/match-settings')} activeOpacity={0.8}>
+      <Ionicons name="options-outline" size={25} color={Colors.primary} />
+    </TouchableOpacity>
+  );
+
+  // ─── Mode privé ──────────────────────────────────────────────────────────────
+  if (user?.privateMode) {
+    return (
+      <TabScreenLayout title="Explorer" leftAction={exploreLeft} rightAction={exploreRight}>
+        <View style={styles.emptyContainer}>
+          <View style={styles.emptyCircle}>
+            <Ionicons name="eye-off" size={48} color={Colors.primary} />
+          </View>
+          <Text style={styles.emptyText}>Mode privé activé</Text>
+          <Text style={[styles.emptyText, { fontSize: 14, marginTop: 8, opacity: 0.7 }]}>
+            Votre profil est caché.{"\n"}Désactivez le mode privé dans les paramètres pour explorer.
+          </Text>
+        </View>
+        <BottomNav activeTab="explore" />
+      </TabScreenLayout>
+    );
+  }
+
   // ─── États de rendu ──────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <View style={styles.container}>
-        <PageHeader onPressRight={() => router.push('/match-settings')} />
+      <TabScreenLayout title="Explorer" leftAction={exploreLeft} rightAction={exploreRight}>
         <View style={styles.loadingContainer}>
           <Animated.Image
             source={require("@/assets/images/Radar.png")}
@@ -165,14 +197,13 @@ export default function ExploreScreen() {
           <Text style={styles.loadingText}>Recherche en cours...</Text>
         </View>
         <BottomNav activeTab="explore" />
-      </View>
+      </TabScreenLayout>
     );
   }
 
   if (matches.length === 0) {
     return (
-      <View style={styles.container}>
-        <PageHeader onPressRight={() => router.push('/match-settings')} />
+      <TabScreenLayout title="Explorer" leftAction={exploreLeft} rightAction={exploreRight}>
         <View style={styles.emptyContainer}>
           <View style={styles.emptyCircle}>
             <Image source={require("@/assets/images/dogillustration2.png")} style={styles.emptyDog} resizeMode="contain" />
@@ -180,7 +211,7 @@ export default function ExploreScreen() {
           <Text style={styles.emptyText}>Oups ! Aucun résultat pour le moment{"\n"}Reviens plus tard !</Text>
         </View>
         <BottomNav activeTab="explore" />
-      </View>
+      </TabScreenLayout>
     );
   }
 
@@ -188,7 +219,7 @@ export default function ExploreScreen() {
 
   return (
     <View style={styles.container}>
-      <PageHeader onPressRight={() => router.push('/match-settings')} />
+      <TabScreenLayout title="Explorer" leftAction={exploreLeft} rightAction={exploreRight}>
 
       <View style={styles.cardContainer}>
         {/* Cartes en arrière-plan */}
@@ -230,6 +261,7 @@ export default function ExploreScreen() {
       />
 
       <BottomNav activeTab="explore" />
+      </TabScreenLayout>
 
       {/* Modal match */}
       {showMatchModal && matchedUser && (
@@ -302,6 +334,9 @@ export default function ExploreScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  headerDogBtn: { width: 45, height: 45, borderRadius: 30, backgroundColor: Colors.buttonPrimary, justifyContent: 'center', alignItems: 'center' },
+  headerDogIcon: { width: 30, height: 30 },
+  headerOptionsBtn: { width: 45, height: 45, borderRadius: 30, backgroundColor: Colors.buttonPrimary, justifyContent: 'center', alignItems: 'center' },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", paddingBottom: 80 },
   radarImage: { width: 200, height: 200, position: "absolute" },
   loadingDog: { width: 150, height: 150 },

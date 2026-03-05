@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>DogWalk Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { display: flex; min-height: 100vh; }
+        .sidebar { width: 250px; background: #2c3e50; color: white; padding: 20px; }
+        .sidebar a { color: white; text-decoration: none; display: block; padding: 10px; margin: 5px 0; border-radius: 5px; }
+        .sidebar a:hover { background: #34495e; }
+        .content { flex: 1; padding: 30px; background: #f8f9fa; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h3>🐕 DogWalk</h3>
+        <hr>
+        <a href="{{ path('admin') }}">📊 Dashboard</a>
+        <a href="{{ path('admin_users') }}">👥 Users</a>
+        <a href="{{ path('admin_dogs') }}">🐶 Dogs</a>
+        <a href="{{ path('admin_matches') }}">💖 Matches</a>
+        <a href="{{ path('admin_conversations') }}">💬 Conversations</a>
+        <a href="{{ path('admin_keywords') }}">🏷️ Keywords</a>
+        <hr>
+        <a href="{{ path('admin_logout') }}">🚪 Logout</a>
+    </div>
+    <div class="content">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

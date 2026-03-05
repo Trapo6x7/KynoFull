@@ -13,7 +13,7 @@ class UserMatchController
     {
     }
 
-    #[Route('/api/user_matches/seen', name: 'api_user_matches_seen', methods: ['GET'])]
+    #[Route('/api/user_matches_seen', name: 'api_user_matches_seen', methods: ['GET'])]
     public function __invoke(): JsonResponse
     {
         $user = $this->security->getUser();

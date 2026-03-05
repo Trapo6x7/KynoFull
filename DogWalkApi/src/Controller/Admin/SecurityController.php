@@ -21,6 +21,12 @@ class SecurityController extends AbstractController
         ]);
     }
 
+    #[Route('/admin/login_check', name: 'admin_login_check')]
+    public function loginCheck(): void
+    {
+        // Cette méthode ne sera jamais appelée, Symfony intercepte la requête
+    }
+
     #[Route('/admin/logout', name: 'admin_logout')]
     public function logout(): void
     {

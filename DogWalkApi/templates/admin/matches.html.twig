@@ -1,0 +1,29 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block content %}
+    <h2>💖 Matches ({{ matches|length }})</h2>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>User</th>
+                <th>Target</th>
+                <th>Action</th>
+                <th>Score</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for match in matches %}
+            <tr>
+                <td>{{ match.id }}</td>
+                <td>{{ match.user.name }}</td>
+                <td>{{ match.targetUser.name }}</td>
+                <td>{{ match.action }}</td>
+                <td>{{ match.matchScore ?? 'N/A' }}</td>
+                <td>{{ match.createdAt|date('Y-m-d H:i') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

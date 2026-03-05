@@ -10,6 +10,7 @@ import {
   SafeAreaView,
   Platform,
   StatusBar,
+  ScrollView,
 } from 'react-native';
 import { useFocusEffect, router } from 'expo-router';
 import * as NavigationBar from 'expo-navigation-bar';
@@ -124,6 +125,32 @@ function ConversationItem({ conversation, myId, onPress, otherId, otherImage }: 
   );
 }
 
+// --- MatchBubble ---------------------------------------------------------------
+
+function MatchBubble({ conversation, myId, onPress }: { conversation: Conversation; myId: number; onPress: () => void }) {
+  const isP1 = conversation.participant1?.id === myId;
+  const other = isP1 ? conversation.participant2 : conversation.participant1;
+  const img = other?.images?.[0];
+  const avatarUri = img ? `${API_CONFIG.BASE_URL}/uploads/images/${img}` : undefined;
+  const name = other?.firstName ?? other?.name ?? 'Utilisateur';
+  const firstName = name.split(' ')[0];
+
+  return (
+    <TouchableOpacity style={styles.matchBubble} activeOpacity={0.8} onPress={onPress}>
+      <View style={styles.matchAvatarRing}>
+        {avatarUri ? (
+          <Image source={{ uri: avatarUri }} style={styles.matchAvatar} />
+        ) : (
+          <View style={[styles.matchAvatar, styles.matchAvatarFallback]}>
+            <Text style={styles.matchInitials}>{getInitials(name)}</Text>
+          </View>
+        )}
+      </View>
+      <Text style={styles.matchName} numberOfLines={1}>{firstName}</Text>
+    </TouchableOpacity>
+  );
+}
+
 // --- MessagesScreen ------------------------------------------------------------
 
 export default function MessagesScreen() {
@@ -155,6 +182,9 @@ export default function MessagesScreen() {
 
   const myId = user?.id ?? 0;
 
+  const newMatches = conversations.filter(c => c.type !== 'group' && !c.lastMessageContent);
+  const activeConvos = conversations.filter(c => c.type === 'group' || !!c.lastMessageContent);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
@@ -170,7 +200,7 @@ export default function MessagesScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Liste */}
+      {/* Contenu */}
       {loading ? (
         <ActivityIndicator size="large" color={Colors.primary} style={styles.loader} />
       ) : conversations.length === 0 ? (
@@ -180,40 +210,89 @@ export default function MessagesScreen() {
           <Text style={styles.emptySubtitle}>Likez des profils pour commencer a discuter !</Text>
         </View>
       ) : (
-        <FlatList
-          data={conversations}
-          keyExtractor={item => String(item.id)}
-            renderItem={({ item }) => {
-              const isP1r = item.participant1?.id === myId;
-              const otherUser = isP1r ? item.participant2 : item.participant1;
-              const img = otherUser?.images?.[0];
-              const otherImageUri = img ? `${API_CONFIG.BASE_URL}/uploads/images/${img}` : undefined;
-              return (
-            <ConversationItem
-              conversation={item}
-              myId={myId}
-              otherId={otherUser?.id}
-              otherImage={otherImageUri}
-              onPress={() => {
-                const isGroup = item.type === 'group';
-                const isP1 = item.participant1?.id === myId;
-                const other = isP1 ? item.participant2 : item.participant1;
-                const chatTitle = isGroup
-                  ? (item.group?.name ?? 'Groupe')
-                  : (other?.name ?? 'Utilisateur');
-                const img = other?.images?.[0];
-                const otherImage = img ? `${API_CONFIG.BASE_URL}/uploads/images/${img}` : undefined;
-                router.push({
-                  pathname: '/chat',
-                  params: { conversationId: item.id, otherName: chatTitle, otherImage, isGroup: isGroup ? '1' : '0' },
-                } as any);
+        <>
+          {/* ── Nouveaux Matchs ── */}
+          {newMatches.length > 0 && (
+            <View style={styles.matchesSection}>
+              <Text style={styles.sectionTitle}>Nouveaux Matchs</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.matchesRow}
+              >
+                {newMatches.map(conv => (
+                  <MatchBubble
+                    key={conv.id}
+                    conversation={conv}
+                    myId={myId}
+                    onPress={() => {
+                      const isP1 = conv.participant1?.id === myId;
+                      const other = isP1 ? conv.participant2 : conv.participant1;
+                      const name = other?.firstName ?? other?.name ?? 'Utilisateur';
+                      const img = other?.images?.[0];
+                      const otherImage = img ? `${API_CONFIG.BASE_URL}/uploads/images/${img}` : undefined;
+                      router.push({
+                        pathname: '/chat',
+                        params: { conversationId: conv.id, otherName: name, otherImage, isGroup: '0' },
+                      } as any);
+                    }}
+                  />
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* ── Messages ── */}
+          {activeConvos.length > 0 && (
+            <View style={styles.messagesHeader}>
+              <Text style={styles.sectionTitle}>Messages</Text>
+              <View style={styles.countPill}>
+                <Text style={styles.countPillText}>{activeConvos.length}</Text>
+              </View>
+            </View>
+          )}
+
+          {activeConvos.length > 0 ? (
+            <FlatList
+              data={activeConvos}
+              keyExtractor={item => String(item.id)}
+              renderItem={({ item }) => {
+                const isP1r = item.participant1?.id === myId;
+                const otherUser = isP1r ? item.participant2 : item.participant1;
+                const img = otherUser?.images?.[0];
+                const otherImageUri = img ? `${API_CONFIG.BASE_URL}/uploads/images/${img}` : undefined;
+                return (
+                  <ConversationItem
+                    conversation={item}
+                    myId={myId}
+                    otherId={otherUser?.id}
+                    otherImage={otherImageUri}
+                    onPress={() => {
+                      const isGroup = item.type === 'group';
+                      const isP1 = item.participant1?.id === myId;
+                      const other = isP1 ? item.participant2 : item.participant1;
+                      const chatTitle = isGroup
+                        ? (item.group?.name ?? 'Groupe')
+                        : (other?.name ?? 'Utilisateur');
+                      const img = other?.images?.[0];
+                      const otherImage = img ? `${API_CONFIG.BASE_URL}/uploads/images/${img}` : undefined;
+                      router.push({
+                        pathname: '/chat',
+                        params: { conversationId: item.id, otherName: chatTitle, otherImage, isGroup: isGroup ? '1' : '0' },
+                      } as any);
+                    }}
+                  />
+                );
               }}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
             />
-              );
-            }}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
+          ) : (
+            <View style={styles.emptyConvos}>
+              <Text style={styles.emptySubtitle}>Commence à écrire à tes nouveaux matchs !</Text>
+            </View>
+          )}
+        </>
       )}
 
       {/* Bottom Nav */}
@@ -393,5 +472,94 @@ const styles = StyleSheet.create({
   // Bottom nav
   bottomNav: {
     marginTop: 'auto',
+  },
+
+  // ── Nouveaux Matchs
+  matchesSection: {
+    paddingTop: 14,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0d6e8',
+      paddingHorizontal: 8,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.primary,
+    paddingHorizontal: 16,
+    marginBottom: 10,
+  },
+  matchesRow: {
+    paddingHorizontal: 12,
+    gap: 16,
+    paddingBottom: 14,
+  },
+  matchBubble: {
+    alignItems: 'center',
+    width: 72,
+  },
+  matchAvatarRing: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 2.5,
+    borderColor: Colors.primary,
+    padding: 2,
+    marginBottom: 6,
+  },
+  matchAvatar: {
+    width: 61,
+    height: 61,
+    borderRadius: 31,
+  },
+  matchAvatarFallback: {
+    backgroundColor: Colors.buttonPrimary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  matchInitials: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.primaryDark,
+  },
+  matchName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.grayDark,
+    textAlign: 'center',
+  },
+
+  // ── Messages header
+  messagesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    verticalAlign: "middle",
+    paddingHorizontal: 8,
+    paddingTop: 14,
+    paddingBottom: 8,
+    gap: 8,
+  },
+  countPill: {
+    backgroundColor: Colors.primary,
+    borderRadius: 10,
+    minWidth: 22,
+    height: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  countPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.white,
+  },
+
+  // ── Empty convos
+  emptyConvos: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 40,
+    paddingTop: 40,
   },
 });

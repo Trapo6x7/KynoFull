@@ -26,5 +26,8 @@ export interface IMatchService {
   getMyMatches(): Promise<UserMatch[]>;
 
   /** Retourne les IDs des utilisateurs déjà vus (like ou dislike) */
-  getSeenUserIds(): Promise<number[]>;
+  getSeenUserIds(myId: number): Promise<number[]>;
+
+  /** Retourne les IDs des utilisateurs qui ont liké le user courant */
+  getLikesReceived(myId: number): Promise<number[]>;
 }

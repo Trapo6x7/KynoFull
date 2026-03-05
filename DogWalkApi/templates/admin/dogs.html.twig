@@ -1,0 +1,27 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block content %}
+    <h2>🐶 Dogs ({{ dogs|length }})</h2>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Gender</th>
+                <th>Owner</th>
+                <th>Birthdate</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dog in dogs %}
+            <tr>
+                <td>{{ dog.id }}</td>
+                <td>{{ dog.name }}</td>
+                <td>{{ dog.gender }}</td>
+                <td>{{ dog.user.name }}</td>
+                <td>{{ dog.birthdate|date('Y-m-d') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

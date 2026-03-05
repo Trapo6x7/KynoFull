@@ -2,34 +2,70 @@
 
 namespace App\Controller\Admin;
 
-use App\Entity\User;
-use App\Entity\Dog;
-use App\Entity\Group;
-use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
-use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
-use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
+use App\Repository\UserRepository;
+use App\Repository\DogRepository;
+use App\Repository\UserMatchRepository;
+use App\Repository\ConversationRepository;
+use App\Repository\KeywordRepository;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
-class DashboardController extends AbstractDashboardController
+#[Route('/admin')]
+class DashboardController extends AbstractController
 {
-    #[Route('/admin', name: 'admin')]
-    public function index(): Response
-    {
-        return $this->render('@EasyAdmin/page/content.html.twig');
+    #[Route('', name: 'admin')]
+    public function index(
+        UserRepository $userRepo,
+        DogRepository $dogRepo,
+        UserMatchRepository $matchRepo,
+        ConversationRepository $convRepo
+    ): Response {
+        return $this->render('admin/dashboard.html.twig', [
+            'userCount' => $userRepo->count([]),
+            'dogCount' => $dogRepo->count([]),
+            'matchCount' => $matchRepo->count([]),
+            'convCount' => $convRepo->count([]),
+        ]);
     }
 
-    public function configureDashboard(): Dashboard
+    #[Route('/users', name: 'admin_users')]
+    public function users(UserRepository $userRepo): Response
     {
-        return Dashboard::new()
-            ->setTitle('DogWalk Admin');
+        return $this->render('admin/users.html.twig', [
+            'users' => $userRepo->findAll(),
+        ]);
     }
 
-    public function configureMenuItems(): iterable
+    #[Route('/dogs', name: 'admin_dogs')]
+    public function dogs(DogRepository $dogRepo): Response
     {
-        yield MenuItem::linkToDashboard('Dashboard', 'fa fa-home');
-        yield MenuItem::linkToCrud('Users', 'fa fa-user', User::class);
-        yield MenuItem::linkToCrud('Dogs', 'fa fa-dog', Dog::class);
-        yield MenuItem::linkToCrud('Groups', 'fa fa-users', Group::class);
+        return $this->render('admin/dogs.html.twig', [
+            'dogs' => $dogRepo->findAll(),
+        ]);
+    }
+
+    #[Route('/matches', name: 'admin_matches')]
+    public function matches(UserMatchRepository $matchRepo): Response
+    {
+        return $this->render('admin/matches.html.twig', [
+            'matches' => $matchRepo->findAll(),
+        ]);
+    }
+
+    #[Route('/conversations', name: 'admin_conversations')]
+    public function conversations(ConversationRepository $convRepo): Response
+    {
+        return $this->render('admin/conversations.html.twig', [
+            'conversations' => $convRepo->findAll(),
+        ]);
+    }
+
+    #[Route('/keywords', name: 'admin_keywords')]
+    public function keywords(KeywordRepository $keywordRepo): Response
+    {
+        return $this->render('admin/keywords.html.twig', [
+            'keywords' => $keywordRepo->findAll(),
+        ]);
     }
 }

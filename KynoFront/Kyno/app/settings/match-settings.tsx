@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import SettingsLayout from '@/src/components/SettingsLayout';
 import Colors from '@/src/constants/colors';
 import raceService from '@/src/services/raceService';
 import type { Race } from '@/src/types';
@@ -328,16 +329,7 @@ export default function MatchSettingsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.8}>
-          <Ionicons name="arrow-back" size={24} color={Colors.grayDark} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Paramètres de match</Text>
-        <View style={styles.headerSpacer} />
-      </View>
-
+    <SettingsLayout title="Paramètres de match">
       <ScrollView style={styles.content} contentContainerStyle={styles.contentInner} showsVerticalScrollIndicator={false}>
 
         {/* Genre */}
@@ -409,41 +401,13 @@ export default function MatchSettingsScreen() {
         </TouchableOpacity>
 
       </ScrollView>
-    </View>
+    </SettingsLayout>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: 50,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    backgroundColor: 'transparent',
-  },
-  backButton: {
-    width: 36,
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.grayDark,
-  },
-  headerSpacer: {
-    width: 36,
-  },
   content: {
     flex: 1,
   },
