@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -9,21 +9,24 @@ import {
   Dimensions,
   StatusBar,
   Platform,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import Colors from '@/src/constants/colors';
+  Modal,
+  FlatList,
+  SafeAreaView,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import Colors from "@/src/constants/colors";
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 const HERO_HEIGHT = height * 0.46;
-const PREVIEW_EXTRA = 54; // extra height below hero so buttons can straddle the edge
+const PREVIEW_EXTRA = 42; // marginTop on tabBar when action buttons straddle the image edge
 const THUMB_SIZE = (width - 48) / 2;
 
-export type ProfileMode = 'me' | 'match' | 'preview' | 'group';
+export type ProfileMode = "me" | "match" | "preview" | "group";
 
 export interface ProfileDetailViewProps {
   mode: ProfileMode;
   /** 'owner' | 'pet' — détermine le libellé "Mon profil" / "Mon chien" */
-  type?: 'owner' | 'pet';
+  type?: "owner" | "pet";
   name: string;
   /** URL principale (image héro) */
   mainImage?: string;
@@ -33,7 +36,7 @@ export interface ProfileDetailViewProps {
   description?: string;
   /** Bouton secondaire en bas-droite du héro (ex. patte pour switcher owner⟷pet) */
   onSubProfile?: () => void;
-  subProfileIcon?: React.ComponentProps<typeof Ionicons>['name'];
+  subProfileIcon?: React.ComponentProps<typeof Ionicons>["name"];
   subProfileLabel?: string;
   onBack?: () => void;
   /** Mode preview : passer / liker / profil suivant */
@@ -56,14 +59,14 @@ export interface ProfileDetailViewProps {
 
 export const ProfileDetailView: React.FC<ProfileDetailViewProps> = ({
   mode,
-  type = 'owner',
+  type = "owner",
   name,
   mainImage,
   images = [],
   keywords = [],
   description,
   onSubProfile,
-  subProfileIcon = 'paw-outline',
+  subProfileIcon = "paw-outline",
   subProfileLabel,
   onBack,
   onLike,
@@ -76,33 +79,44 @@ export const ProfileDetailView: React.FC<ProfileDetailViewProps> = ({
   onAddMember,
   onChat,
 }) => {
-  const [activeTab, setActiveTab] = useState<'images' | 'apropos'>('images');
+  const [activeTab, setActiveTab] = useState<"images" | "apropos">("images");
 
-  // heroWrapper is taller in preview mode so buttons can sit à cheval on the photo edge
-  const hasActions = mode === 'preview' && (!!onLike || !!onDislike);
-  const heroWrapperHeight = hasActions ? HERO_HEIGHT + PREVIEW_EXTRA : HERO_HEIGHT;
+  const hasActions = mode === "preview" && (!!onLike || !!onDislike);
 
   const heroUri = mainImage || (images[0] ?? null);
   const galleryImages = images.length > 0 ? images : [];
 
   const headerLabel =
-    mode === 'me'
-      ? type === 'pet'
-        ? 'Mon chien'
-        : 'Mon profil'
-      : name;
+    mode === "me" ? (type === "pet" ? "Mon chien" : "Mon profil") : name;
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <StatusBar
+        barStyle="light-content"
+        translucent
+        backgroundColor="transparent"
+      />
 
       {/* ── Wrapper héro + boutons ── */}
-      <View style={[styles.heroWrapper, { height: heroWrapperHeight }]}>
+      <View
+        style={[
+          styles.heroWrapper,
+          {
+            height: HERO_HEIGHT,
+            overflow: "visible",
+            zIndex: hasActions ? 5 : undefined,
+          },
+        ]}
+      >
         {/* Photo */}
         <View style={styles.heroContainer}>
           {heroUri ? (
-            <Image source={{ uri: heroUri }} style={styles.heroImage} resizeMode="cover" />
-          ) : mode === 'me' ? (
+            <Image
+              source={{ uri: heroUri }}
+              style={styles.heroImage}
+              resizeMode="cover"
+            />
+          ) : mode === "me" ? (
             /* Placeholder cliquable pour uploader une photo */
             <TouchableOpacity
               style={[styles.heroImage, styles.heroPlaceholder]}
@@ -110,7 +124,11 @@ export const ProfileDetailView: React.FC<ProfileDetailViewProps> = ({
               activeOpacity={0.8}
             >
               <View style={styles.addPhotoBtn}>
-                <Ionicons name="camera-outline" size={36} color={Colors.white} />
+                <Ionicons
+                  name="camera-outline"
+                  size={36}
+                  color={Colors.white}
+                />
                 <Text style={styles.addPhotoText}>Ajouter une photo</Text>
               </View>
             </TouchableOpacity>
@@ -124,7 +142,11 @@ export const ProfileDetailView: React.FC<ProfileDetailViewProps> = ({
 
         {/* Top-left : retour + nom */}
         <View style={styles.heroTopLeft}>
-          <TouchableOpacity style={styles.backButton} onPress={onBack} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={onBack}
+            activeOpacity={0.8}
+          >
             <Ionicons name="chevron-back" size={20} color={Colors.white} />
           </TouchableOpacity>
           <Text style={styles.heroName}>{headerLabel}</Text>
@@ -132,25 +154,37 @@ export const ProfileDetailView: React.FC<ProfileDetailViewProps> = ({
 
         {/* Top-right : toggle paw/person */}
         {onSubProfile && (
-          <TouchableOpacity style={styles.subProfileBtn} onPress={onSubProfile} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={styles.subProfileBtn}
+            onPress={onSubProfile}
+            activeOpacity={0.85}
+          >
             <Ionicons
               name={subProfileIcon}
               size={22}
-              color={type === 'pet' ? Colors.primary : Colors.gray}
+              color={type === "pet" ? Colors.primary : Colors.gray}
             />
           </TouchableOpacity>
         )}
 
         {/* 3 points mode me / Chat mode group */}
-        {((mode === 'me' && onSettings) || (mode === 'group' && onChat)) && (
+        {((mode === "me" && onSettings) || (mode === "group" && onChat)) && (
           <View style={styles.matchActions}>
-            {mode === 'me' && onSettings && (
-              <TouchableOpacity style={[styles.actionBtn, styles.actionEdit]} onPress={onSettings} activeOpacity={0.85}>
+            {mode === "me" && onSettings && (
+              <TouchableOpacity
+                style={[styles.actionBtn]}
+                onPress={onSettings}
+                activeOpacity={0.85}
+              >
                 <Ionicons name="ellipsis-horizontal" size={20} color="#fff" />
               </TouchableOpacity>
             )}
-            {mode === 'group' && onChat && (
-              <TouchableOpacity style={[styles.actionBtn, styles.actionEdit]} onPress={onChat} activeOpacity={0.85}>
+            {mode === "group" && onChat && (
+              <TouchableOpacity
+                style={[styles.actionBtn]}
+                onPress={onChat}
+                activeOpacity={0.85}
+              >
                 <Ionicons name="chatbubble-ellipses" size={20} color="#fff" />
               </TouchableOpacity>
             )}
@@ -158,38 +192,60 @@ export const ProfileDetailView: React.FC<ProfileDetailViewProps> = ({
         )}
 
         {/* Boutons preview — dans la bande blanche sous l'image */}
-        {mode === 'preview' && (onLike || onDislike) && (
+        {mode === "preview" && (onLike || onDislike) && (
           <View style={styles.previewActions}>
-            <TouchableOpacity style={styles.previewBtn} onPress={onDislike} activeOpacity={0.85}>
+            <TouchableOpacity
+              style={styles.previewBtn}
+              onPress={onDislike}
+              activeOpacity={0.85}
+            >
               <Ionicons name="close" size={32} color={Colors.gray} />
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.previewBtn, styles.previewLikeBtn]} onPress={onLike} activeOpacity={0.85}>
+            <TouchableOpacity
+              style={[styles.previewBtn, styles.previewLikeBtn]}
+              onPress={onLike}
+              activeOpacity={0.85}
+            >
               <Ionicons name="heart" size={32} color={Colors.primary} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.previewBtn} onPress={onNext} activeOpacity={0.85}>
+            <TouchableOpacity
+              style={styles.previewBtn}
+              onPress={onNext}
+              activeOpacity={0.85}
+            >
               <Ionicons name="refresh" size={28} color={Colors.gray} />
             </TouchableOpacity>
           </View>
         )}
       </View>
 
-  {/* ── Tabs ── */}
-      <View style={styles.tabBar}>
+      {/* ── Tabs ── */}
+      <View style={[styles.tabBar, hasActions && { marginTop: 30 }]}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'images' && styles.tabActive]}
-          onPress={() => setActiveTab('images')}
+          style={[styles.tab, activeTab === "images" && styles.tabActive]}
+          onPress={() => setActiveTab("images")}
           activeOpacity={0.8}
         >
-          <Text style={[styles.tabText, activeTab === 'images' && styles.tabTextActive]}>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "images" && styles.tabTextActive,
+            ]}
+          >
             IMAGES
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'apropos' && styles.tabActive]}
-          onPress={() => setActiveTab('apropos')}
+          style={[styles.tab, activeTab === "apropos" && styles.tabActive]}
+          onPress={() => setActiveTab("apropos")}
           activeOpacity={0.8}
         >
-          <Text style={[styles.tabText, activeTab === 'apropos' && styles.tabTextActive]}>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "apropos" && styles.tabTextActive,
+            ]}
+          >
             À PROPOS
           </Text>
         </TouchableOpacity>
@@ -201,8 +257,12 @@ export const ProfileDetailView: React.FC<ProfileDetailViewProps> = ({
         contentContainerStyle={styles.contentInner}
         showsVerticalScrollIndicator={false}
       >
-        {activeTab === 'images' ? (
-          <ImageGrid images={galleryImages} mode={mode} onAddImage={onAddImage} />
+        {activeTab === "images" ? (
+          <ImageGrid
+            images={galleryImages}
+            mode={mode}
+            onAddImage={onAddImage}
+          />
         ) : (
           <AProposContent
             name={name}
@@ -219,6 +279,85 @@ export const ProfileDetailView: React.FC<ProfileDetailViewProps> = ({
   );
 };
 
+/* ── Fullscreen carousel ─────────────────────────────────────────────────────── */
+function ImageCarousel({
+  images,
+  startIndex,
+  onClose,
+}: {
+  images: string[];
+  startIndex: number;
+  onClose: () => void;
+}) {
+  const flatRef = useRef<FlatList>(null);
+  const [current, setCurrent] = useState(startIndex);
+
+  return (
+    <Modal
+      visible
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      <View style={carousel.container}>
+        <StatusBar barStyle="light-content" backgroundColor="#000" />
+        <FlatList
+          ref={flatRef}
+          data={images}
+          keyExtractor={(_, i) => String(i)}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          initialScrollIndex={startIndex}
+          getItemLayout={(_, index) => ({
+            length: width,
+            offset: width * index,
+            index,
+          })}
+          onMomentumScrollEnd={(e) => {
+            const idx = Math.round(e.nativeEvent.contentOffset.x / width);
+            setCurrent(idx);
+          }}
+          renderItem={({ item }) => (
+            <View style={carousel.page}>
+              <Image
+                source={{ uri: item }}
+                style={carousel.image}
+                resizeMode="contain"
+              />
+            </View>
+          )}
+        />
+        {/* Dots */}
+        {images.length > 1 && (
+          <View style={carousel.dots}>
+            {images.map((_, i) => (
+              <View
+                key={i}
+                style={[carousel.dot, i === current && carousel.dotActive]}
+              />
+            ))}
+          </View>
+        )}
+        {/* Compteur */}
+        <View style={carousel.counter}>
+          <Text style={carousel.counterText}>
+            {current + 1} / {images.length}
+          </Text>
+        </View>
+        {/* Fermer */}
+        <TouchableOpacity
+          style={carousel.closeBtn}
+          onPress={onClose}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="close" size={26} color="#fff" />
+        </TouchableOpacity>
+      </View>
+    </Modal>
+  );
+}
+
 /* ── Image grid ──────────────────────────────────────────────────────────────── */
 function ImageGrid({
   images,
@@ -229,8 +368,10 @@ function ImageGrid({
   mode: ProfileMode;
   onAddImage?: () => void;
 }) {
+  const [carouselIndex, setCarouselIndex] = useState<number | null>(null);
+
   if (images.length === 0) {
-    if (mode !== 'me') {
+    if (mode !== "me") {
       return (
         <View style={styles.emptyImages}>
           <Ionicons name="images-outline" size={48} color={Colors.grayLight} />
@@ -241,7 +382,11 @@ function ImageGrid({
     return (
       <View style={styles.grid}>
         <View style={styles.gridRow}>
-          <TouchableOpacity style={[styles.gridThumb, styles.gridAddThumb]} onPress={onAddImage} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={[styles.gridThumb, styles.gridAddThumb]}
+            onPress={onAddImage}
+            activeOpacity={0.8}
+          >
             <Ionicons name="add" size={36} color={Colors.primary} />
           </TouchableOpacity>
         </View>
@@ -256,26 +401,49 @@ function ImageGrid({
 
   return (
     <View style={styles.grid}>
+      {carouselIndex !== null && (
+        <ImageCarousel
+          images={images}
+          startIndex={carouselIndex}
+          onClose={() => setCarouselIndex(null)}
+        />
+      )}
       {rows.map((row, ri) => (
         <View key={ri} style={styles.gridRow}>
-          {row.map((uri, ci) => (
-            <Image
-              key={ci}
-              source={{ uri }}
-              style={styles.gridThumb}
-              resizeMode="cover"
-            />
-          ))}
-          {row.length === 1 && mode === 'me' && (
-            <TouchableOpacity style={[styles.gridThumb, styles.gridAddThumb]} onPress={onAddImage} activeOpacity={0.8}>
+          {row.map((uri, ci) => {
+            const globalIndex = ri * 2 + ci;
+            return (
+              <TouchableOpacity
+                key={ci}
+                activeOpacity={0.85}
+                onPress={() => setCarouselIndex(globalIndex)}
+              >
+                <Image
+                  source={{ uri }}
+                  style={styles.gridThumb}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            );
+          })}
+          {row.length === 1 && mode === "me" && (
+            <TouchableOpacity
+              style={[styles.gridThumb, styles.gridAddThumb]}
+              onPress={onAddImage}
+              activeOpacity={0.8}
+            >
               <Ionicons name="add" size={36} color={Colors.primary} />
             </TouchableOpacity>
           )}
         </View>
       ))}
-      {images.length % 2 === 0 && mode === 'me' && (
+      {images.length % 2 === 0 && mode === "me" && (
         <View style={styles.gridRow}>
-          <TouchableOpacity style={[styles.gridThumb, styles.gridAddThumb]} onPress={onAddImage} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={[styles.gridThumb, styles.gridAddThumb]}
+            onPress={onAddImage}
+            activeOpacity={0.8}
+          >
             <Ionicons name="add" size={36} color={Colors.primary} />
           </TouchableOpacity>
         </View>
@@ -302,7 +470,7 @@ function AProposContent({
   onAddMember?: () => void;
   onEdit?: () => void;
 }) {
-  if (mode === 'group') {
+  if (mode === "group") {
     return (
       <View style={styles.apropos}>
         <Text style={styles.aproposSection}>Nom</Text>
@@ -316,7 +484,11 @@ function AProposContent({
             </View>
           ))}
           {onAddMember && (
-            <TouchableOpacity style={[styles.chip, styles.chipAdd]} onPress={onAddMember} activeOpacity={0.8}>
+            <TouchableOpacity
+              style={[styles.chip, styles.chipAdd]}
+              onPress={onAddMember}
+              activeOpacity={0.8}
+            >
               <Ionicons name="add" size={16} color={Colors.primaryDark} />
             </TouchableOpacity>
           )}
@@ -324,7 +496,9 @@ function AProposContent({
 
         {description ? (
           <>
-            <Text style={[styles.aproposSection, { marginTop: 18 }]}>Description</Text>
+            <Text style={[styles.aproposSection, { marginTop: 18 }]}>
+              Description
+            </Text>
             <Text style={styles.aproposDesc}>{description}</Text>
           </>
         ) : null}
@@ -337,8 +511,12 @@ function AProposContent({
       <Text style={styles.aproposSection}>Nom</Text>
       <View style={styles.aproposNameRow}>
         <Text style={styles.aproposName}>{name}</Text>
-        {mode === 'me' && onEdit && (
-          <TouchableOpacity style={styles.editNameBtn} onPress={onEdit} activeOpacity={0.7}>
+        {mode === "me" && onEdit && (
+          <TouchableOpacity
+            style={styles.editNameBtn}
+            onPress={onEdit}
+            activeOpacity={0.7}
+          >
             <Ionicons name="pencil-outline" size={16} color={Colors.white} />
           </TouchableOpacity>
         )}
@@ -357,9 +535,11 @@ function AProposContent({
         )}
       </View>
 
-      <Text style={[styles.aproposSection, { marginTop: 18 }]}>Description</Text>
+      <Text style={[styles.aproposSection, { marginTop: 18 }]}>
+        Description
+      </Text>
       <Text style={styles.aproposDesc}>
-        {description || 'Aucune description renseignée.'}
+        {description || "Aucune description renseignée."}
       </Text>
     </View>
   );
@@ -375,81 +555,83 @@ const styles = StyleSheet.create({
   /* Wrapper héro + boutons preview */
   heroWrapper: {
     width,
-    position: 'relative', // contexte de positionnement pour les enfants absolute
+    position: "relative", // contexte de positionnement pour les enfants absolute
     backgroundColor: Colors.white,
     // height is set via inline style (heroWrapperHeight) to vary by mode
   },
 
   /* Héro (photo uniquement) */
   heroContainer: {
-    width: '100%',
+    width: "100%",
     height: HERO_HEIGHT,
-    position: 'relative',
+    position: "relative",
     backgroundColor: Colors.grayLight,
   },
   heroImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   heroPlaceholder: {
     backgroundColor: Colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   heroEmpty: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: "#1a1a1a",
   },
   addPhotoBtn: {
-    alignItems: 'center',
+    alignItems: "center",
     gap: 10,
   },
   addPhotoText: {
     color: Colors.white,
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
     opacity: 0.9,
   },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.18)',
-  },  heroTopLeft: {
-    position: 'absolute',
-    top: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) + 8 : 52,
+    backgroundColor: "rgba(0,0,0,0.18)",
+  },
+  heroTopLeft: {
+    position: "absolute",
+    top: Platform.OS === "android" ? (StatusBar.currentHeight ?? 24) + 8 : 52,
     left: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
   },
   backButton: {
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: 'rgba(0,0,0,0.30)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0,0,0,0.30)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   heroName: {
     color: Colors.white,
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
   },
 
   /* Bouton crayon mode me */
   matchActions: {
-    position: 'absolute',
-    top: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) + 8 : 52,
+    position: "absolute",
+    top: Platform.OS === "android" ? (StatusBar.currentHeight ?? 24) + 8 : 52,
     right: 14,
   },
   actionBtn: {
-    width: 48,
-    height: 48,
+    width: 32,
+    height: 32,
+    backgroundColor: "rgba(0,0,0,0.30)",
     borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
-  actionEdit: {
-    backgroundColor: Colors.primary,
-  },
+  // actionEdit: {
+  //   backgroundColor: Colors.primary,
+  // },
 
   editNameBtn: {
     padding: 8,
@@ -459,21 +641,22 @@ const styles = StyleSheet.create({
   },
 
   aproposNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
 
   /* Actions preview — à cheval entre le bas de la photo et la bande blanche */
   previewActions: {
-    position: 'absolute',
+    position: "absolute",
     top: HERO_HEIGHT - 40, // centre des boutons aligné sur le bas de la photo
     left: 0,
     right: 0,
-    flexDirection: 'row',
-    gap: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    gap: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
   },
   previewBtn: {
     width: 45,
@@ -481,8 +664,8 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     backgroundColor: Colors.grayLight,
     color: Colors.gray,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   previewLikeBtn: {
     width: 80,
@@ -493,25 +676,25 @@ const styles = StyleSheet.create({
 
   /* Bouton toggle sous-profil (bas-droite) */
   subProfileBtn: {
-    position: 'absolute',
-    bottom: 16,
+    position: "absolute",
+    bottom: 28,
     right: 16,
     width: 40,
     height: 40,
     borderRadius: 20,
     backgroundColor: Colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   subProfileLabel: {
     fontSize: 12,
     color: Colors.primary,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 
   /* Tabs */
   tabBar: {
-    flexDirection: 'row',
+    flexDirection: "row",
     borderBottomWidth: 1,
     borderBottomColor: Colors.grayLight,
     backgroundColor: Colors.white,
@@ -522,7 +705,7 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     paddingVertical: 14,
-    alignItems: 'center',
+    alignItems: "center",
   },
   tabActive: {
     borderBottomWidth: 2,
@@ -530,7 +713,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.gray,
     letterSpacing: 0.5,
   },
@@ -553,7 +736,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   gridRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
   },
   gridThumb: {
@@ -563,12 +746,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.grayLight,
   },
   gridAddThumb: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: Colors.buttonPrimary,
   },
   emptyImages: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 40,
     gap: 12,
   },
@@ -583,20 +766,20 @@ const styles = StyleSheet.create({
   },
   aproposSection: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.gray,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 0.8,
     marginBottom: 8,
   },
   aproposName: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     color: Colors.grayDark,
   },
   chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   chip: {
@@ -607,21 +790,79 @@ const styles = StyleSheet.create({
   },
   chipAdd: {
     paddingHorizontal: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 1.5,
     borderColor: Colors.primaryDark,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   chipText: {
     fontSize: 13,
     color: Colors.primaryDark,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   aproposDesc: {
     fontSize: 14,
     color: Colors.grayDark,
     lineHeight: 22,
+  },
+});
+
+/* ── Carousel styles ─────────────────────────────────────────────────────────── */
+const carousel = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#000",
+  },
+  page: {
+    width,
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  image: {
+    width,
+    height: "100%",
+  },
+  closeBtn: {
+    position: "absolute",
+    top: Platform.OS === "android" ? (StatusBar.currentHeight ?? 24) + 8 : 52,
+    right: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  counter: {
+    position: "absolute",
+    top: Platform.OS === "android" ? (StatusBar.currentHeight ?? 24) + 14 : 58,
+    alignSelf: "center",
+  },
+  counterText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  dots: {
+    position: "absolute",
+    bottom: 32,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 8,
+  },
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "rgba(255,255,255,0.4)",
+  },
+  dotActive: {
+    backgroundColor: "#fff",
+    width: 20,
   },
 });
 

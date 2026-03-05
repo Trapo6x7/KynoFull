@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,28 +8,31 @@ import {
   Platform,
   StatusBar,
   ActivityIndicator,
-} from 'react-native';
-import { router } from 'expo-router';
-import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
-import * as Location from 'expo-location';
-import Entypo from '@expo/vector-icons/Entypo';
-import { Ionicons } from '@expo/vector-icons';
-import * as NavigationBar from 'expo-navigation-bar';
+  Modal,
+  Image,
+} from "react-native";
+import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
+import * as Location from "expo-location";
+import { Ionicons } from "@expo/vector-icons";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import * as NavigationBar from "expo-navigation-bar";
 
-import Colors from '@/src/constants/colors';
-import BottomNav from '@/components/BottomNav';
-import TabScreenLayout from '@/src/components/TabScreenLayout';
+import Colors from "@/src/constants/colors";
+import BottomNav from "@/components/BottomNav";
+import TabScreenLayout from "@/src/components/TabScreenLayout";
+import apiClient from "@/src/services/api";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
-const STATUS_H = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0;
-const SEARCH_RADIUS_M = 2000; // 2 km — rayon réduit pour éviter les timeouts Overpass
+const STATUS_H = Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : 0;
 
-// Plusieurs endpoints Overpass en fallback (le public est souvent surchargé)
-const OVERPASS_ENDPOINTS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
-];
+// ─── Backend spots API ─────────────────────────────────────────────────────────
+async function fetchSpotsFromBackend(
+  lat: number,
+  lon: number,
+): Promise<WalkSpot[]> {
+  const response = await apiClient.get("/api/spots", { params: { lat, lon } });
+  return response.data as WalkSpot[];
+}
 
 const DEFAULT_REGION = {
   latitude: 48.8566,
@@ -39,196 +42,299 @@ const DEFAULT_REGION = {
 };
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-type SpotCategory = 'Tous' | 'Parcs' | 'Forêts' | 'Bords d\'eau' | 'Aires dogs';
+type SpotCategory = "Tous" | "Parcs" | "Forêts" | "Bords d'eau" | "Aires dogs";
 
 interface WalkSpot {
   id: number;
   name: string;
   address: string;
   distance: string;
-  distanceRaw: number; // en mètres, pour tri
-  category: Exclude<SpotCategory, 'Tous'>;
+  distanceRaw: number;
+  category: Exclude<SpotCategory, "Tous">;
   latitude: number;
   longitude: number;
+  photoUrl?: string | null;
+  rating?: number | null;
 }
 
-// ─── Haversine ────────────────────────────────────────────────────────────────
-function haversineM(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371000;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function formatDistance(m: number): string {
-  return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`;
-}
-
-// ─── Overpass OSM ─────────────────────────────────────────────────────────────
-
-/**
- * Mots-clés à exclure côté client.
- * Fontaines, bassins décoratifs, équipements urbains ponctuels.
- */
-const NAME_BLACKLIST = [
-  'fontaine', 'fountain', 'jet d\'eau', 'piscine', 'lavoir',
-  'bouche d\'égout', 'bac à sable', 'aire de jeux', 'place', 'espace'
-];
-
-/**
- * Tags OSM à exclure même si le nom est "propre".
- * Évite les réservoirs techniques, fossés, mares artificielles.
- */
-const TAG_BLACKLIST: Array<{ key: string; value: string }> = [
-  { key: 'waterway', value: 'ditch' },
-  { key: 'waterway', value: 'drain' },
-  { key: 'waterway', value: 'stream' },  // ruisseaux trop petits
-  { key: 'man_made', value: 'reservoir_covered' },
-  { key: 'landuse',  value: 'reservoir' },
-  { key: 'leisure',  value: 'swimming_pool' },
-  { key: 'leisure',  value: 'playground' },
-];
-
-async function fetchSpotsFromOSM(
-  lat: number,
-  lon: number,
-  radiusM: number,
-): Promise<WalkSpot[]> {
-  const r = radiusM;
-  const parts = [
-    `way["leisure"~"park|garden|nature_reserve|dog_park"](around:${r},${lat},${lon});`,
-    `way["landuse"~"forest|grass"](around:${r},${lat},${lon});`,
-    `way["natural"~"wood|water"](around:${r},${lat},${lon});`,
-  ].join('\n');
-
-  const query = `[out:json][timeout:30];\n(\n${parts}\n);\nout center qt 30;`;
-
-  let lastError: Error | null = null;
-  for (const endpoint of OVERPASS_ENDPOINTS) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 35_000);
-    try {
-      const resp = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `data=${encodeURIComponent(query)}`,
-        signal: controller.signal,
-      });
-      clearTimeout(timer);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const json = await resp.json();
-      console.log(`[OSM] ${json.elements?.length ?? 0} éléments via ${endpoint}`);
-      return parseOSMElements(json.elements ?? [], lat, lon);
-    } catch (e) {
-      clearTimeout(timer);
-      console.warn(`[OSM] échec ${endpoint}:`, e);
-      lastError = e as Error;
-    }
-  }
-  throw lastError ?? new Error('Tous les endpoints Overpass ont échoué');
-}
-
-function parseOSMElements(elements: any[], lat: number, lon: number): WalkSpot[] {
-  const seen = new Set<string>();
-  const spots: WalkSpot[] = [];
-
-  for (const el of elements) {
-    const elLat: number = el.lat ?? el.center?.lat;
-    const elLon: number = el.lon ?? el.center?.lon;
-    if (!elLat || !elLon) continue;
-
-    const rawName: string = el.tags?.name || el.tags?.['name:fr'] || el.tags?.['official_name'] || '';
-    if (!rawName) continue;
-
-    const nameLower = rawName.toLowerCase().trim();
-
-    if (NAME_BLACKLIST.some(b => nameLower.includes(b))) continue;
-    if (TAG_BLACKLIST.some(({ key, value }) => el.tags?.[key] === value)) continue;
-    if (seen.has(nameLower)) continue;
-    seen.add(nameLower);
-
-    let category: Exclude<SpotCategory, 'Tous'> = 'Parcs';
-    if (el.tags?.leisure === 'dog_park') {
-      category = 'Aires dogs';
-    } else if (
-      el.tags?.leisure === 'nature_reserve' ||
-      el.tags?.landuse === 'forest' ||
-      el.tags?.natural === 'wood'
-    ) {
-      category = 'Forêts';
-    } else if (
-      el.tags?.natural === 'water' ||
-      el.tags?.waterway === 'river' ||
-      el.tags?.waterway === 'canal'
-    ) {
-      category = "Bords d'eau";
-    }
-
-    const distM = haversineM(lat, lon, elLat, elLon);
-    const city: string = el.tags?.['addr:city'] || el.tags?.['addr:suburb'] || el.tags?.['addr:district'] || '';
-
-    spots.push({
-      id: el.id,
-      name: rawName,
-      address: city || 'À proximité',
-      distance: formatDistance(distM),
-      distanceRaw: distM,
-      category,
-      latitude: elLat,
-      longitude: elLon,
-    });
-  }
-
-  return spots.sort((a, b) => a.distanceRaw - b.distanceRaw).slice(0, 30);
-}
-
-const CATEGORY_META: Record<Exclude<SpotCategory, 'Tous'>, { icon: keyof typeof Ionicons.glyphMap; color: string }> = {
-  'Parcs':         { icon: 'leaf-outline',       color: '#66BB6A' },
-  'Forêts':        { icon: 'trail-sign-outline',  color: '#8D6E63' },
-  "Bords d'eau":   { icon: 'water-outline',       color: '#42A5F5' },
-  'Aires dogs':    { icon: 'paw-outline',         color: Colors.buttonText },
+const CATEGORY_META: Record<
+  Exclude<SpotCategory, "Tous">,
+  { icon: keyof typeof Ionicons.glyphMap; color: string }
+> = {
+  Parcs: { icon: "leaf-outline", color: "#66BB6A" },
+  Forêts: { icon: "trail-sign-outline", color: "#8D6E63" },
+  "Bords d'eau": { icon: "water-outline", color: "#42A5F5" },
+  "Aires dogs": { icon: "paw-outline", color: Colors.buttonText },
 };
 
 // ─── Marqueur de spot custom ──────────────────────────────────────────────────
-function SpotMarker({ category, size = 30 }: { category: Exclude<SpotCategory, 'Tous'>; size?: number }) {
-  const meta = CATEGORY_META[category];
+function SpotMarker({
+  category,
+  size = 30,
+}: {
+  category?: Exclude<SpotCategory, "Tous">;
+  size?: number;
+}) {
+  const bgColor = category ? CATEGORY_META[category]?.color ?? Colors.primary : Colors.primary;
   return (
-    <View style={[
-      styles.spotMarker,
-      { width: size, height: size, borderRadius: size / 2, backgroundColor: meta.color },
-    ]}>
-      <Ionicons name={meta.icon} size={size * 0.45} color={Colors.white} />
+    <View
+      collapsable={false}
+      style={{ padding: 3, backgroundColor: "transparent" }}
+    >
+      <View
+        style={[
+          styles.spotMarker,
+          { width: size, height: size, borderRadius: size / 2, backgroundColor: bgColor },
+        ]}
+      >
+        <MaterialCommunityIcons
+          name="bone"
+          size={size * 0.55}
+          color={Colors.white}
+        />
+      </View>
     </View>
   );
 }
 
-const FILTERS: SpotCategory[] = ['Tous', 'Parcs', 'Forêts', 'Bords d\'eau', 'Aires dogs'];
+const FILTERS: SpotCategory[] = [
+  "Tous",
+  "Parcs",
+  "Forêts",
+  "Bords d'eau",
+  "Aires dogs",
+];
 
-// ─── SpotCard ─────────────────────────────────────────────────────────────────
-function SpotCard({ spot, onPress }: { spot: WalkSpot; onPress: () => void }) {
+// ─── Marqueur utilisateur ────────────────────────────────────────────────────
+function UserMarker({ size = 38 }: { size?: number }) {
+  return (
+    <View
+      collapsable={false}
+      style={{ padding: 3, backgroundColor: "transparent" }}
+    >
+      <View
+        style={[
+          styles.spotMarker,
+          { width: size, height: size, borderRadius: size / 2, backgroundColor: Colors.primary },
+        ]}
+      >
+        <MaterialCommunityIcons name="paw" size={size * 0.55} color={Colors.white} />
+      </View>
+    </View>
+  );
+}
+
+// ─── SpotModal ────────────────────────────────────────────────────
+function SpotModal({
+  spot,
+  onClose,
+  userRating,
+  onRate,
+}: {
+  spot: WalkSpot | null;
+  onClose: () => void;
+  userRating: number;
+  onRate: (stars: number) => void;
+}) {
+  if (!spot) return null;
   const meta = CATEGORY_META[spot.category];
   return (
-    <TouchableOpacity style={styles.card} activeOpacity={0.85} onPress={onPress}>
-      <View style={[styles.thumb, { backgroundColor: meta.color + '22' }]}>
-        <Ionicons name={meta.icon} size={26} color={meta.color} />
+    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+      {/* Couche 1 : assombrit */}
+      <View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFillObject,
+          { backgroundColor: "rgba(255,255,255,0.35)" },
+        ]}
+      />
+      {/* Couche 2 : teinte rose givrée */}
+      <View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFillObject,
+          { backgroundColor: "rgba(240,210,225,0.25)" },
+        ]}
+      />
+      <View style={styles.modalBackdrop}>
+        <TouchableOpacity
+          style={StyleSheet.absoluteFillObject}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+        <TouchableOpacity activeOpacity={1} style={styles.modalSheet}>
+          {/* Photo */}
+          {spot.photoUrl ? (
+            <Image
+              source={{ uri: spot.photoUrl }}
+              style={styles.modalPhoto}
+              resizeMode="cover"
+            />
+          ) : (
+            <View
+              style={[
+                styles.modalPhoto,
+                {
+                  backgroundColor: meta.color + "33",
+                  justifyContent: "center",
+                  alignItems: "center",
+                },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="bone"
+                size={48}
+                color={meta.color}
+              />
+            </View>
+          )}
+
+          {/* Infos */}
+          <View style={styles.modalBody}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 4,
+              }}
+            >
+              <View
+                style={[
+                  styles.categoryPill,
+                  { backgroundColor: meta.color + "22" },
+                ]}
+              >
+                <Text style={[styles.categoryPillText, { color: meta.color }]}>
+                  {spot.category}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.modalName}>{spot.name}</Text>
+            <View style={styles.infoRow}>
+              <Ionicons
+                name="location-outline"
+                size={14}
+                color={Colors.grayDark}
+              />
+              <Text style={styles.infoTextAddress}> {spot.address}</Text>
+            </View>
+            <View style={[styles.infoRow, { marginTop: 2 }]}>
+              <Ionicons name="navigate-outline" size={14} color={Colors.gray} />
+              <Text style={styles.infoText}> {spot.distance}</Text>
+            </View>
+
+            {/* Étoiles */}
+            <Text style={styles.ratingLabel}>Votre note</Text>
+            <View style={{ flexDirection: "row", gap: 6, marginTop: 6 }}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <TouchableOpacity
+                  key={star}
+                  onPress={() => onRate(star)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <MaterialCommunityIcons
+                    name={star <= userRating ? "star-circle" : "star-circle-outline"}
+                    size={30}
+                    color={star <= userRating ? Colors.primary : Colors.grayLight}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+            {userRating > 0 && (
+              <Text style={{ fontSize: 12, color: Colors.gray, marginTop: 6 }}>
+                Vous avez noté ce lieu {userRating}/5
+              </Text>
+            )}
+          </View>
+
+          {/* Fermer */}
+          <TouchableOpacity style={styles.modalClose} onPress={onClose}>
+            <Ionicons name="close" size={20} color={Colors.grayDark} />
+          </TouchableOpacity>
+        </TouchableOpacity>
       </View>
+    </Modal>
+  );
+}
+
+// ─── SpotCard ─────────────────────────────────────────────────────────────────
+function SpotCard({
+  spot,
+  onPress,
+  userRating,
+}: {
+  spot: WalkSpot;
+  onPress: () => void;
+  userRating: number;
+}) {
+  const meta = CATEGORY_META[spot.category];
+  return (
+    <TouchableOpacity
+      style={styles.card}
+      activeOpacity={0.85}
+      onPress={onPress}
+    >
+      {/* Photo ou icône fallback */}
+      {spot.photoUrl ? (
+        <Image
+          source={{ uri: spot.photoUrl }}
+          style={styles.thumb}
+          resizeMode="cover"
+        />
+      ) : (
+        <View
+          style={[
+            styles.thumb,
+            {
+              backgroundColor: meta.color,
+              justifyContent: "center",
+              alignItems: "center",
+            },
+          ]}
+        >
+          <MaterialCommunityIcons name="bone" size={26} color={Colors.white} />
+        </View>
+      )}
+
       <View style={styles.cardInfo}>
-        <Text style={styles.cardName} numberOfLines={1}>{spot.name}</Text>
+        <Text style={styles.cardName} numberOfLines={1}>
+          {spot.name}
+        </Text>
         <View style={styles.infoRow}>
-          <Ionicons name="location-outline" size={13} color={Colors.gray} />
-          <Text style={styles.infoText} numberOfLines={1}> {spot.address}</Text>
+          <Ionicons name="location-outline" size={13} color={Colors.grayDark} />
+          <Text style={styles.infoTextAddress} numberOfLines={1}>
+            {" "}
+            {spot.address}
+          </Text>
         </View>
         <View style={styles.infoRow}>
           <Ionicons name="navigate-outline" size={13} color={Colors.gray} />
           <Text style={styles.infoText}> {spot.distance}</Text>
         </View>
-      </View>
-      <View style={styles.categoryBadge}>
-        <Text style={[styles.categoryText, { color: meta.color }]}>{spot.category}</Text>
+        {/* Catégorie + note */}
+        <View style={[styles.infoRow, { marginTop: 4, gap: 6 }]}>
+          <Text style={[styles.categoryText, { color: meta.color }]}>
+            {spot.category}
+          </Text>
+          <Text style={{ color: Colors.grayLight }}>·</Text>
+          {[1, 2, 3, 4, 5].map((s) => (
+            <MaterialCommunityIcons
+              key={s}
+              name={s <= userRating ? "star-circle" : "star-circle-outline"}
+              size={11}
+              color={userRating > 0 ? Colors.primary : Colors.grayLight}
+            />
+          ))}
+          {userRating > 0 ? (
+            <Text style={styles.infoText}> {userRating}/5</Text>
+          ) : (
+            <Text style={[styles.infoText, { color: Colors.grayLight }]}>
+              {" "}
+              Non noté
+            </Text>
+          )}
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -240,13 +346,15 @@ export default function MapScreen() {
   const [locationReady, setLocationReady] = useState(false);
   const [locationLoading, setLocationLoading] = useState(true);
   const [fullscreen, setFullscreen] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<SpotCategory>('Tous');
+  const [activeFilter, setActiveFilter] = useState<SpotCategory>("Tous");
   const [spots, setSpots] = useState<WalkSpot[]>([]);
   const [spotsLoading, setSpotsLoading] = useState(false);
   const [spotsError, setSpotsError] = useState(false);
+  const [selectedSpot, setSelectedSpot] = useState<WalkSpot | null>(null);
+  const [ratings, setRatings] = useState<Record<number, number>>({});
 
   useEffect(() => {
-    if (Platform.OS === 'android') {
+    if (Platform.OS === "android") {
       NavigationBar.setBackgroundColorAsync(Colors.buttonPrimary);
     }
   }, []);
@@ -256,8 +364,10 @@ export default function MapScreen() {
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-          const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        if (status === "granted") {
+          const loc = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
           setRegion({
             latitude: loc.coords.latitude,
             longitude: loc.coords.longitude,
@@ -275,20 +385,23 @@ export default function MapScreen() {
   }, []);
 
   // 2) Dès que la position est prête, interroger Overpass OSM
-  const loadSpots = useCallback(async (lat: number, lon: number) => {
-    setSpotsLoading(true);
-    setSpotsError(false);
-    try {
-      const data = await fetchSpotsFromOSM(lat, lon, SEARCH_RADIUS_M);
-      console.log(`[OSM] ${data.length} spots après filtrage`);
-      setSpots(data);
-    } catch (e) {
-      console.error('[OSM] Erreur fetchSpotsFromOSM:', e);
-      setSpotsError(true);
-    } finally {
-      setSpotsLoading(false);
-    }
-  }, []);
+  const loadSpots = useCallback(
+    async (lat: number, lon: number, force = false) => {
+      setSpotsLoading(true);
+      setSpotsError(false);
+      try {
+        const data = await fetchSpotsFromBackend(lat, lon);
+        console.log(`[Spots] ${data.length} spots reçus du backend`);
+        setSpots(data);
+      } catch (e) {
+        console.error("[Spots] Erreur fetchSpotsFromBackend:", e);
+        setSpotsError(true);
+      } finally {
+        setSpotsLoading(false);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     if (locationReady) {
@@ -297,18 +410,22 @@ export default function MapScreen() {
   }, [locationReady]);
 
   const filteredSpots = useMemo(
-    () => activeFilter === 'Tous' ? spots : spots.filter(s => s.category === activeFilter),
+    () =>
+      activeFilter === "Tous"
+        ? spots
+        : spots.filter((s) => s.category === activeFilter),
     [spots, activeFilter],
   );
 
   // Marqueurs avec coordonnées réelles issues d'OSM
-  const markers = useMemo(() =>
-    filteredSpots.map(s => ({
-      id: s.id,
-      name: s.name,
-      category: s.category,
-      coordinate: { latitude: s.latitude, longitude: s.longitude },
-    })),
+  const markers = useMemo(
+    () =>
+      filteredSpots.map((s) => ({
+        id: s.id,
+        name: s.name,
+        category: s.category,
+        coordinate: { latitude: s.latitude, longitude: s.longitude },
+      })),
     [filteredSpots],
   );
 
@@ -316,7 +433,11 @@ export default function MapScreen() {
   if (fullscreen) {
     return (
       <View style={{ flex: 1, backgroundColor: Colors.background }}>
-        <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
+        <StatusBar
+          translucent
+          backgroundColor="transparent"
+          barStyle="dark-content"
+        />
 
         <MapView
           style={StyleSheet.absoluteFillObject}
@@ -324,19 +445,37 @@ export default function MapScreen() {
           provider={PROVIDER_DEFAULT}
           showsMyLocationButton={false}
         >
-          {markers.map(m => (
-            <Marker key={m.id} coordinate={m.coordinate} title={m.name} anchor={{ x: 0.5, y: 0.5 }}>
+          {markers.map((m) => (
+            <Marker
+              key={m.id}
+              coordinate={m.coordinate}
+              anchor={{ x: 0.5, y: 0.5 }}
+              onPress={() =>
+                setSelectedSpot(
+                  filteredSpots.find((s) => s.id === m.id) ?? null,
+                )
+              }
+            >
               <SpotMarker category={m.category} />
             </Marker>
           ))}
-          {/* Marqueur position utilisateur */}
-          <Marker coordinate={{ latitude: region.latitude, longitude: region.longitude }} zIndex={1000} anchor={{ x: 0.5, y: 1 }}>
-            <Entypo name="location-pin" size={42} color={Colors.primary} />
+          <Marker
+            coordinate={{
+              latitude: region.latitude,
+              longitude: region.longitude,
+            }}
+            anchor={{ x: 0.5, y: 0.5 }}
+          >
+            <UserMarker size={38} />
           </Marker>
         </MapView>
 
         {/* Bouton retour */}
-        <TouchableOpacity style={styles.backBtn} onPress={() => setFullscreen(false)} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => setFullscreen(false)}
+          activeOpacity={0.8}
+        >
           <Ionicons name="arrow-back" size={20} color="#333" />
         </TouchableOpacity>
 
@@ -347,21 +486,35 @@ export default function MapScreen() {
           style={styles.filterFloating}
           contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
         >
-          {FILTERS.map(f => (
+          {FILTERS.map((f) => (
             <TouchableOpacity
               key={f}
               style={[styles.chip, activeFilter === f && styles.chipActive]}
               onPress={() => setActiveFilter(f)}
               activeOpacity={0.8}
             >
-              <Text style={[styles.chipText, activeFilter === f && styles.chipTextActive]}>{f}</Text>
+              <Text
+                style={[
+                  styles.chipText,
+                  activeFilter === f && styles.chipTextActive,
+                ]}
+              >
+                {f}
+              </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
-        <BottomNav
-          activeTab="map"
-          style={styles.navWrapperFloat}
+        <BottomNav activeTab="map" style={styles.navWrapperFloat} />
+
+        <SpotModal
+          spot={selectedSpot}
+          onClose={() => setSelectedSpot(null)}
+          userRating={selectedSpot ? (ratings[selectedSpot.id] ?? 0) : 0}
+          onRate={(stars) =>
+            selectedSpot &&
+            setRatings((r) => ({ ...r, [selectedSpot.id]: stars }))
+          }
         />
       </View>
     );
@@ -372,16 +525,26 @@ export default function MapScreen() {
     <TabScreenLayout
       title="Lieux de promenade"
       rightAction={
-        <TouchableOpacity style={styles.headerRight} onPress={() => loadSpots(region.latitude, region.longitude)} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.headerRight}
+          onPress={() => loadSpots(region.latitude, region.longitude, true)}
+          activeOpacity={0.7}
+        >
           <Ionicons name="refresh-outline" size={22} color={Colors.primary} />
         </TouchableOpacity>
       }
     >
-
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* ── Petite carte tappable ── */}
-        <TouchableOpacity style={styles.mapWrapper} activeOpacity={0.9} onPress={() => setFullscreen(true)}>
+        <TouchableOpacity
+          style={styles.mapWrapper}
+          activeOpacity={0.9}
+          onPress={() => setFullscreen(true)}
+        >
           {locationLoading ? (
             <View style={[styles.map, styles.mapPlaceholder]}>
               <ActivityIndicator size="large" color={Colors.primary} />
@@ -398,14 +561,25 @@ export default function MapScreen() {
               pitchEnabled={false}
               pointerEvents="none"
             >
-              {markers.map(m => (
-                <Marker key={m.id} coordinate={m.coordinate} title={m.name} anchor={{ x: 0.5, y: 0.5 }}>
+              {markers.map((m) => (
+                <Marker
+                  key={m.id}
+                  coordinate={m.coordinate}
+                  title={m.name}
+                  anchor={{ x: 0.5, y: 0.5 }}
+                >
                   <SpotMarker category={m.category} size={26} />
                 </Marker>
               ))}
-              {/* Marqueur position utilisateur */}
-              <Marker coordinate={{ latitude: region.latitude, longitude: region.longitude }} zIndex={999} anchor={{ x: 0.5, y: 1 }}>
-                <Entypo name="location-pin" size={36} color={Colors.primary} />
+              <Marker
+                coordinate={{
+                  latitude: region.latitude,
+                  longitude: region.longitude,
+                }}
+                zIndex={999}
+                anchor={{ x: 0.5, y: 0.5 }}
+              >
+                <UserMarker size={32} />
               </Marker>
             </MapView>
           )}
@@ -421,47 +595,65 @@ export default function MapScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterRow}
         >
-          {FILTERS.map(f => (
+          {FILTERS.map((f) => (
             <TouchableOpacity
               key={f}
               style={[styles.chip, activeFilter === f && styles.chipActive]}
               onPress={() => setActiveFilter(f)}
               activeOpacity={0.8}
             >
-              <Text style={[styles.chipText, activeFilter === f && styles.chipTextActive]}>{f}</Text>
+              <Text
+                style={[
+                  styles.chipText,
+                  activeFilter === f && styles.chipTextActive,
+                ]}
+              >
+                {f}
+              </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
-
       </ScrollView>
 
       {/* ── Section spots (scroll indépendant) ── */}
       <View style={styles.spotsSection}>
-  
-
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 90 }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 90 }}
+        >
           {spotsLoading ? (
             <View style={styles.spotsLoader}>
               <ActivityIndicator size="large" color={Colors.primary} />
-              <Text style={styles.spotsLoaderText}>Chargement des spots près de chez vous…</Text>
+              <Text style={styles.spotsLoaderText}>
+                Chargement des spots près de chez vous…
+              </Text>
             </View>
           ) : spotsError ? (
             <TouchableOpacity
               style={styles.retryBtn}
-              onPress={() => loadSpots(region.latitude, region.longitude)}
+              onPress={() => loadSpots(region.latitude, region.longitude, true)}
               activeOpacity={0.8}
             >
-              <Ionicons name="refresh-outline" size={18} color={Colors.primary} />
+              <Ionicons
+                name="refresh-outline"
+                size={18}
+                color={Colors.primary}
+              />
               <Text style={styles.retryText}>Réessayer</Text>
             </TouchableOpacity>
           ) : filteredSpots.length === 0 ? (
-            <Text style={styles.emptyText}>Aucun spot trouvé dans cette catégorie.</Text>
+            <Text style={styles.emptyText}>
+              Aucun spot trouvé dans cette catégorie.
+            </Text>
           ) : (
-            filteredSpots.map(spot => (
+            filteredSpots.map((spot) => (
               <SpotCard
                 key={spot.id}
                 spot={spot}
-                onPress={() => { /* TODO: détail spot + proposition de walk */ }}
+                userRating={ratings[spot.id] ?? 0}
+                onPress={() => {
+                  /* TODO: détail spot + proposition de walk */
+                }}
               />
             ))
           )}
@@ -479,8 +671,8 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   // ── ScrollView (carte + filtres uniquement)
@@ -500,21 +692,21 @@ const styles = StyleSheet.create({
   // ── Petite carte
   mapWrapper: {
     borderRadius: 16,
-    overflow: 'hidden',
+    overflow: "hidden",
     marginBottom: 14,
     height: 200,
   },
   map: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   mapPlaceholder: {
     backgroundColor: Colors.grayLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   expandHint: {
-    position: 'absolute',
+    position: "absolute",
     top: 10,
     right: 10,
     backgroundColor: Colors.primaryLight,
@@ -522,25 +714,23 @@ const styles = StyleSheet.create({
     padding: 4,
   },
 
-  // ── Marqueur position utilisateur
-  userMarkerWrap: {
-    padding: 5,
-    overflow: 'visible',
-  },
   spotMarker: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: Colors.primary,
+    borderRadius: 40,
+    borderWidth: 1,
+    borderColor: Colors.background,
   },
 
   // ── Filtres
   filterRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
-    paddingBottom: 14,
-    paddingTop: 2,
+    paddingVertical: 4,
   },
   filterFloating: {
-    position: 'absolute',
+    position: "absolute",
     top: STATUS_H + 60,
     left: 0,
     right: 0,
@@ -550,8 +740,8 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 20,
     backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.grayLight,
+    // borderWidth: 1,
+    // borderColor: Colors.grayDark,
   },
   chipActive: {
     backgroundColor: Colors.primary,
@@ -559,8 +749,8 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: Colors.gray,
+    fontWeight: "600",
+    color: Colors.grayDark,
   },
   chipTextActive: {
     color: Colors.white,
@@ -569,15 +759,15 @@ const styles = StyleSheet.create({
   // ── Section
   sectionTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: "700",
     color: Colors.grayDark,
     marginBottom: 12,
   },
 
   // ── Card
   card: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: Colors.white,
     borderRadius: 14,
     paddingHorizontal: 12,
@@ -585,38 +775,36 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   thumb: {
-    width: 52,
-    height: 52,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 58,
+    height: 58,
+    borderRadius: 12,
+    overflow: "hidden",
     marginRight: 12,
+    flexShrink: 0,
   },
-  cardInfo: { flex: 1, gap: 3 },
+  cardInfo: { flex: 1, gap: 5 },
   cardName: {
     fontSize: 14,
-    fontWeight: '700',
-    color: Colors.grayDark,
-    marginBottom: 2,
+    fontWeight: "700",
+    color: Colors.primary,
   },
-  infoRow: { flexDirection: 'row', alignItems: 'center' },
-  infoText: { fontSize: 12, color: Colors.gray },
+  infoRow: { flexDirection: "row", alignItems: "center" },
+  infoText: { fontSize: 10, color: Colors.gray },
+  infoTextAddress: { fontSize: 12, color: Colors.grayDark },
   dot: { fontSize: 12, color: Colors.grayLight },
   categoryBadge: {
     marginLeft: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
     borderRadius: 8,
     // backgroundColor: Colors.primaryLight,
   },
   categoryText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: "700",
   },
 
   // ── Spots loading / error / empty
   spotsLoader: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 100,
     gap: 12,
   },
@@ -625,19 +813,19 @@ const styles = StyleSheet.create({
     color: Colors.gray,
   },
   retryBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
     paddingVertical: 14,
   },
   retryText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.primary,
   },
   emptyText: {
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 13,
     color: Colors.gray,
     paddingVertical: 24,
@@ -645,7 +833,7 @@ const styles = StyleSheet.create({
 
   // ── BottomNav flottante (plein écran)
   navWrapperFloat: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
@@ -653,14 +841,75 @@ const styles = StyleSheet.create({
 
   // ── Boutons plein écran
   backBtn: {
-    position: 'absolute',
+    position: "absolute",
     top: STATUS_H + 16,
     left: 16,
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // ── Modale spot
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "transparent",
+  },
+  modalSheet: {
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderTopWidth: 4,
+    borderColor: Colors.background,
+    overflow: "hidden",
+    paddingBottom: 32,
+    elevation: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+  },
+  modalPhoto: {
+    width: "100%",
+    height: 200,
+  },
+  modalBody: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  modalName: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: Colors.primary,
+    marginBottom: 8,
+  },
+  categoryPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  categoryPillText: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  ratingLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: Colors.grayDark,
+    marginTop: 20,
+  },
+  modalClose: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

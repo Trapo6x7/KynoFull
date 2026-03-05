@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -9,24 +9,24 @@ import {
   ActivityIndicator,
   Platform,
   Dimensions,
-} from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
-import * as NavigationBar from 'expo-navigation-bar';
-import { Ionicons } from '@expo/vector-icons';
+} from "react-native";
+import { router, useFocusEffect } from "expo-router";
+import * as NavigationBar from "expo-navigation-bar";
+import { Ionicons } from "@expo/vector-icons";
 
-import { useAuth } from '@/src/context/AuthContext';
-import { useServices } from '@/src/context/ServicesContext';
-import BottomNav from '@/components/BottomNav';
-import TabScreenLayout from '@/src/components/TabScreenLayout';
-import Colors from '@/src/constants/colors';
-import { API_CONFIG } from '@/src/config/api';
-import type { User } from '@/src/types';
+import { useAuth } from "@/src/context/AuthContext";
+import { useServices } from "@/src/context/ServicesContext";
+import BottomNav from "@/components/BottomNav";
+import TabScreenLayout from "@/src/components/TabScreenLayout";
+import Colors from "@/src/constants/colors";
+import { API_CONFIG } from "@/src/config/api";
+import type { User } from "@/src/types";
 
-const { width } = Dimensions.get('window');
-const CARD_SIZE = (width - 48) / 2;                // 2 colonnes avec marges
+const { width } = Dimensions.get("window");
+const CARD_SIZE = (width - 48) / 2; // 2 colonnes avec marges
 
 const toImageUrl = (f: string) => `${API_CONFIG.BASE_URL}/uploads/images/${f}`;
-const PLACEHOLDER = 'https://via.placeholder.com/400';
+const PLACEHOLDER = "https://via.placeholder.com/400";
 
 export default function LikesScreen() {
   const { user } = useAuth();
@@ -37,10 +37,11 @@ export default function LikesScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (Platform.OS === 'android') NavigationBar.setVisibilityAsync('hidden');
+      if (Platform.OS === "android") NavigationBar.setVisibilityAsync("hidden");
       loadLikers();
       return () => {
-        if (Platform.OS === 'android') NavigationBar.setVisibilityAsync('visible');
+        if (Platform.OS === "android")
+          NavigationBar.setVisibilityAsync("visible");
       };
     }, [user?.id]),
   );
@@ -49,12 +50,14 @@ export default function LikesScreen() {
     if (!user?.id) return;
     setIsLoading(true);
     try {
-      const [likerIds, allUsers] = await Promise.all([
+      const [likerIds, actedIds, allUsers] = await Promise.all([
         matchService.getLikesReceived(user.id),
+        matchService.getSeenUserIds(user.id),
         userService.getAllUsers(),
       ]);
       const likerSet = new Set(likerIds);
-      setLikers(allUsers.filter((u) => likerSet.has(u.id)));
+      const actedSet = new Set(actedIds);
+      setLikers(allUsers.filter((u) => likerSet.has(u.id) && !actedSet.has(u.id)));
     } catch {
       setLikers([]);
     } finally {
@@ -72,15 +75,26 @@ export default function LikesScreen() {
         activeOpacity={0.85}
         onPress={() =>
           router.push({
-            pathname: '/profile-detail',
-            params: { userId: String(item.id), name: item.name ?? item.firstName },
+            pathname: "/profile-detail",
+            params: {
+              userId: String(item.id),
+              name: item.name ?? item.firstName,
+            },
           })
         }
       >
-        <Image source={{ uri: image }} style={styles.cardImage} resizeMode="cover" />
+        <Image
+          source={{ uri: image }}
+          style={styles.cardImage}
+          resizeMode="cover"
+          blurRadius={5}
+        />
         <View style={styles.cardOverlay}>
           <Text style={styles.cardName} numberOfLines={1}>
             {item.name ?? item.firstName}
+            {item.birthdate
+              ? ` , ${new Date().getFullYear() - new Date(item.birthdate).getFullYear()}`
+              : ""}
           </Text>
           {dog && (
             <View style={styles.cardDog}>
@@ -110,7 +124,6 @@ export default function LikesScreen() {
         ) : undefined
       }
     >
-
       {isLoading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={Colors.primary} />
@@ -118,7 +131,9 @@ export default function LikesScreen() {
       ) : likers.length === 0 ? (
         <View style={styles.centered}>
           <Ionicons name="heart-outline" size={56} color={Colors.grayLight} />
-          <Text style={styles.emptyText}>Personne n'a encore liké ton profil</Text>
+          <Text style={styles.emptyText}>
+            Personne n'a encore liké ton profil
+          </Text>
         </View>
       ) : (
         <FlatList
@@ -147,23 +162,23 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     backgroundColor: Colors.primary,
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   countBadgeText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.white,
   },
   centered: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     gap: 12,
   },
   emptyText: {
     color: Colors.gray,
     fontSize: 15,
-    textAlign: 'center',
+    textAlign: "center",
     paddingHorizontal: 40,
   },
   grid: {
@@ -178,31 +193,31 @@ const styles = StyleSheet.create({
     width: CARD_SIZE,
     height: CARD_SIZE * 1.3,
     borderRadius: 18,
-    overflow: 'hidden',
+    overflow: "hidden",
     backgroundColor: Colors.buttonPrimary,
   },
   cardImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   cardOverlay: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: "rgba(0,0,0,0.35)",
     paddingHorizontal: 10,
     paddingVertical: 8,
     gap: 3,
   },
   cardName: {
     color: Colors.white,
-    fontWeight: '700',
+    fontWeight: "700",
     fontSize: 14,
   },
   cardDog: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
   cardDogName: {
@@ -210,14 +225,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   heartBadge: {
-    position: 'absolute',
+    position: "absolute",
     top: 8,
     right: 8,
     backgroundColor: Colors.white,
     borderRadius: 12,
     width: 24,
     height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

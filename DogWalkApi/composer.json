@@ -24,6 +24,7 @@
         "symfony/expression-language": "7.2.*",
         "symfony/flex": "^2.7",
         "symfony/framework-bundle": "7.2.*",
+        "symfony/http-client": "7.2.*",
         "symfony/lock": "7.2.*",
         "symfony/mailer": "7.2.*",
         "symfony/mime": "7.2.*",

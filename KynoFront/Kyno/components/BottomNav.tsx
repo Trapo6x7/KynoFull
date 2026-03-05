@@ -72,7 +72,7 @@ export default function BottomNav({
           <Ionicons
             name={tab.icon}
             size={tab.size}
-            color={activeTab === tab.key ? Colors.primary : Colors.grayDark}
+            color={activeTab === tab.key ? Colors.primary : Colors.gray}
           />
         </TouchableOpacity>
       ))}
