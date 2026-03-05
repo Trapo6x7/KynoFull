@@ -20,9 +20,12 @@ export default function ProfileDetailScreen() {
     /** Pré-charger le nom depuis la carte pour éviter un flash */
     name?: string;
     mainImage?: string;
+    /** Depuis le chat : on a déjà matché, cacher like/dislike */
+    hideActions?: string;
   }>();
 
   const { userId, name: initialName, mainImage: initialImage } = params;
+  const hideActions = params.hideActions === '1';
 
   const { user: currentUser } = useAuth();
   const { matchService } = useServices();
@@ -87,7 +90,7 @@ export default function ProfileDetailScreen() {
         onSubProfile={dog ? () => setShowDog((v) => !v) : undefined}
         subProfileIcon={showDog ? 'person-outline' : 'paw-outline'}
         subProfileLabel={showDog ? ownerName : dog?.name}
-        onLike={async () => {
+        onLike={hideActions ? undefined : async () => {
           if (userId) {
             try {
               const { isMatch } = await matchService.recordLike(Number(userId), currentUser?.id);
@@ -109,7 +112,7 @@ export default function ProfileDetailScreen() {
           }
           router.back();
         }}
-        onDislike={async () => {
+        onDislike={hideActions ? undefined : async () => {
           if (userId) {
             try {
               await matchService.recordDislike(Number(userId), currentUser?.id);

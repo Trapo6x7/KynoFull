@@ -52,6 +52,10 @@ class ChatService implements IChatService {
     );
     return response.data;
   }
+
+  async markConversationAsRead(conversationId: number): Promise<void> {
+    await apiClient.post(`/api/conversations/${conversationId}/read`, {});
+  }
 }
 
 const chatService = new ChatService();

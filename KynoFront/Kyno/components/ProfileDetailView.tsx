@@ -79,7 +79,8 @@ export const ProfileDetailView: React.FC<ProfileDetailViewProps> = ({
   const [activeTab, setActiveTab] = useState<'images' | 'apropos'>('images');
 
   // heroWrapper is taller in preview mode so buttons can sit à cheval on the photo edge
-  const heroWrapperHeight = mode === 'preview' ? HERO_HEIGHT + PREVIEW_EXTRA : HERO_HEIGHT;
+  const hasActions = mode === 'preview' && (!!onLike || !!onDislike);
+  const heroWrapperHeight = hasActions ? HERO_HEIGHT + PREVIEW_EXTRA : HERO_HEIGHT;
 
   const heroUri = mainImage || (images[0] ?? null);
   const galleryImages = images.length > 0 ? images : [];
@@ -157,7 +158,7 @@ export const ProfileDetailView: React.FC<ProfileDetailViewProps> = ({
         )}
 
         {/* Boutons preview — dans la bande blanche sous l'image */}
-        {mode === 'preview' && (
+        {mode === 'preview' && (onLike || onDislike) && (
           <View style={styles.previewActions}>
             <TouchableOpacity style={styles.previewBtn} onPress={onDislike} activeOpacity={0.85}>
               <Ionicons name="close" size={32} color={Colors.gray} />

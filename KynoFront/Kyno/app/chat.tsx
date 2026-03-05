@@ -47,12 +47,14 @@ export default function ChatScreen() {
     conversationId?: string;
     otherName?: string;
     otherImage?: string;
+    otherId?: string;
     isGroup?: string;
   }>();
 
   const conversationId = params.conversationId ? Number(params.conversationId) : null;
   const otherName = params.otherName ?? 'Utilisateur';
   const otherImage = params.otherImage ?? null;
+  const otherId = params.otherId ? Number(params.otherId) : null;
   const isGroup = params.isGroup === '1';
 
   const [messages, setMessages]       = useState<Message[]>([]);
@@ -70,6 +72,8 @@ export default function ChatScreen() {
     try {
       const data = await chatService.getMessages(conversationId);
       setMessages(data);
+      // Remettre le compteur non lu à 0 pour l'utilisateur courant
+      chatService.markConversationAsRead(conversationId).catch(e => console.error('[chat] markConversationAsRead failed:', e));
     } catch (e) {
       console.error('ChatScreen: loadMessages error', e);
     } finally {
@@ -104,6 +108,8 @@ export default function ChatScreen() {
     try {
       const msg = await chatService.sendMessage(conversationId, text);
       setMessages(prev => [...prev, msg]);
+      // S'assurer que notre propre compteur reste à 0 après envoi
+      chatService.markConversationAsRead(conversationId).catch(e => console.error('[chat] markConversationAsRead failed:', e));
     } catch (e) {
       console.error('ChatScreen: sendMessage error', e);
       // Remettre le brouillon en cas d'erreur
@@ -125,8 +131,8 @@ export default function ChatScreen() {
     const isMe = senderId === myId;
 
     const avatarEl = isMe ? (
-      user?.image ? (
-        <Image source={{ uri: `${API_CONFIG.BASE_URL}/uploads/images/${user.image}` }} style={styles.msgAvatar} />
+      user?.images?.[0] ? (
+        <Image source={{ uri: `${API_CONFIG.BASE_URL}/uploads/images/${user.images[0]}` }} style={styles.msgAvatar} />
       ) : (
         <View style={[styles.msgAvatar, styles.msgAvatarFallback]}>
           <Text style={styles.msgAvatarText}>{getInitials(user?.name)}</Text>
@@ -174,7 +180,28 @@ export default function ChatScreen() {
         <TouchableOpacity style={styles.headerBtn} onPress={() => router.back()} activeOpacity={0.7}>
           <Ionicons name="chevron-back" size={22} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>{otherName}</Text>
+
+        <TouchableOpacity
+          style={styles.headerCenter}
+          activeOpacity={otherId && !isGroup ? 0.7 : 1}
+          onPress={() => {
+            if (otherId && !isGroup) {
+              router.push({ pathname: '/profile-detail', params: { userId: String(otherId), name: otherName, mainImage: otherImage ?? '', hideActions: '1' } } as any);
+            }
+          }}
+        >
+          {!isGroup && (
+            otherImage ? (
+              <Image source={{ uri: otherImage }} style={styles.headerAvatar} />
+            ) : (
+              <View style={[styles.headerAvatar, styles.headerAvatarFallback]}>
+                <Text style={styles.headerAvatarText}>{otherName[0]?.toUpperCase() ?? '?'}</Text>
+              </View>
+            )
+          )}
+          <Text style={styles.headerTitle} numberOfLines={1}>{otherName}</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.headerBtn} onPress={() => setMenuVisible(true)} activeOpacity={0.7}>
           <Ionicons name="ellipsis-horizontal" size={20} color="#333" />
         </TouchableOpacity>
@@ -316,8 +343,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: {
+  headerCenter: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  headerAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  headerAvatarFallback: {
+    backgroundColor: Colors.buttonPrimary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerAvatarText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.primaryDark,
+  },
+  headerTitle: {
     textAlign: 'center',
     fontSize: 17,
     fontWeight: '700',
@@ -388,10 +436,12 @@ const styles = StyleSheet.create({
   },
   bubbleMe: {
     backgroundColor: Colors.primary,
+    color: Colors.black,
     borderBottomRightRadius: 4,
   },
   bubbleThem: {
     backgroundColor: '#fff',
+    color: Colors.grayDark,
     borderBottomLeftRadius: 4,
   },
   bubbleText:     { fontSize: 14, lineHeight: 20 },

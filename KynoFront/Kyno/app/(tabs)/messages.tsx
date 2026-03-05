@@ -67,8 +67,9 @@ function ConversationItem({ conversation, myId, onPress, otherId, otherImage }: 
     displayName = other?.name ?? other?.firstName ?? 'Utilisateur';
     const img = other?.images?.[0];
     avatarUri = img ? `${API_CONFIG.BASE_URL}/uploads/images/${img}` : undefined;
-    // unreadCount2 = messages non lus par moi (participant1)
-    unread = isP1 ? conversation.unreadCount2 : conversation.unreadCount1;
+    // unreadCount1 = messages non lus par participant1, unreadCount2 = non lus par participant2
+    unread = isP1 ? conversation.unreadCount1 : conversation.unreadCount2;
+    console.log(`[ConvItem] conv=${conversation.id} myId=${myId} isP1=${isP1} unreadCount1=${conversation.unreadCount1} unreadCount2=${conversation.unreadCount2} → unread=${unread}`);
   }
 
   return (
@@ -81,14 +82,14 @@ function ConversationItem({ conversation, myId, onPress, otherId, otherImage }: 
           </View>
         ) : avatarUri ? (
           <TouchableOpacity
-            onPress={() => otherId && router.push({ pathname: '/profile-detail', params: { userId: String(otherId), name: displayName, mainImage: otherImage ?? '' } } as any)}
+            onPress={() => otherId && router.push({ pathname: '/profile-detail', params: { userId: String(otherId), name: displayName, mainImage: otherImage ?? '', hideActions: '1' } } as any)}
             activeOpacity={0.8}
           >
             <Image source={{ uri: avatarUri }} style={styles.avatar} />
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
-            onPress={() => otherId && router.push({ pathname: '/profile-detail', params: { userId: String(otherId), name: displayName, mainImage: otherImage ?? '' } } as any)}
+            onPress={() => otherId && router.push({ pathname: '/profile-detail', params: { userId: String(otherId), name: displayName, mainImage: otherImage ?? '', hideActions: '1' } } as any)}
             activeOpacity={0.8}
           >
             <View style={[styles.avatar, styles.avatarFallback]}>
@@ -233,7 +234,7 @@ export default function MessagesScreen() {
                       const otherImage = img ? `${API_CONFIG.BASE_URL}/uploads/images/${img}` : undefined;
                       router.push({
                         pathname: '/chat',
-                        params: { conversationId: conv.id, otherName: name, otherImage, isGroup: '0' },
+                        params: { conversationId: conv.id, otherName: name, otherImage, otherId: String(other?.id ?? ''), isGroup: '0' },
                       } as any);
                     }}
                   />
@@ -278,7 +279,7 @@ export default function MessagesScreen() {
                       const otherImage = img ? `${API_CONFIG.BASE_URL}/uploads/images/${img}` : undefined;
                       router.push({
                         pathname: '/chat',
-                        params: { conversationId: item.id, otherName: chatTitle, otherImage, isGroup: isGroup ? '1' : '0' },
+                        params: { conversationId: item.id, otherName: chatTitle, otherImage, otherId: isGroup ? '' : String(other?.id ?? ''), isGroup: isGroup ? '1' : '0' },
                       } as any);
                     }}
                   />

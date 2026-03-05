@@ -54,4 +54,7 @@ export interface IChatService {
 
   /** Marque un message comme lu */
   markMessageAsRead(messageId: number): Promise<Message>;
+
+  /** Remet à zéro le compteur non lu d'une conversation pour l'utilisateur courant */
+  markConversationAsRead(conversationId: number): Promise<void>;
 }
