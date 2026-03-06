@@ -12,6 +12,7 @@ import {
   Modal,
   FlatList,
   SafeAreaView,
+  PanResponder,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "@/src/constants/colors";
@@ -81,6 +82,16 @@ export const ProfileDetailView: React.FC<ProfileDetailViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<"images" | "apropos">("images");
 
+  const swipePan = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dx) > 12 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+      onPanResponderRelease: (_, g) => {
+        if (g.dx > 60 && g.vx > 0.2) onBack?.();
+      },
+    }),
+  ).current;
+
   const hasActions = mode === "preview" && (!!onLike || !!onDislike);
 
   const heroUri = mainImage || (images[0] ?? null);
@@ -90,7 +101,7 @@ export const ProfileDetailView: React.FC<ProfileDetailViewProps> = ({
     mode === "me" ? (type === "pet" ? "Mon chien" : "Mon profil") : name;
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} {...swipePan.panHandlers}>
       <StatusBar
         barStyle="light-content"
         translucent
