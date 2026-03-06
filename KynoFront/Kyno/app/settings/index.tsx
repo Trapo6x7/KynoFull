@@ -29,16 +29,25 @@ export default function SettingsScreen() {
 
   const sectionHeight = scrollY.interpolate({
     inputRange: [0, COLLAPSE_AT],
-    outputRange: [190, 74],
+    outputRange: [210, 74],
     extrapolate: 'clamp',
   });
+  // Single interpolation 0→1, both states derived from it → always sum to 1, zero flash
+  const progress = scrollY.interpolate({
+    inputRange: [0, COLLAPSE_AT],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+  // expandedOpacity = 1 - progress, collapsedOpacity = progress
+  // We can't subtract an Animated.Value directly, so we use separate interpolations
+  // but with identical inputRange so they perfectly complement each other.
   const expandedOpacity = scrollY.interpolate({
-    inputRange: [0, COLLAPSE_AT * 0.45],
+    inputRange: [0, COLLAPSE_AT],
     outputRange: [1, 0],
     extrapolate: 'clamp',
   });
   const collapsedOpacity = scrollY.interpolate({
-    inputRange: [COLLAPSE_AT * 0.55, COLLAPSE_AT],
+    inputRange: [0, COLLAPSE_AT],
     outputRange: [0, 1],
     extrapolate: 'clamp',
   });
@@ -98,7 +107,7 @@ export default function SettingsScreen() {
           <Text style={styles.profileEmail}>{user?.email}</Text>
         </Animated.View>
 
-        {/* Collapsed: small image left + name/age right */}
+        {/* Collapsed: small image + name centered */}
         <Animated.View style={[styles.profileCollapsed, { opacity: collapsedOpacity }]}>
           <View style={styles.profileImageContainerSmall}>
             {user?.images?.[0] ? (
@@ -109,15 +118,9 @@ export default function SettingsScreen() {
               </View>
             )}
           </View>
-          <View style={{ marginLeft: 14 }}>
-            <Text style={styles.profileNameSmall}>
-              {displayName || 'Utilisateur'}
-              {userAge !== null && (
-                <Text style={styles.profileAgeInline}>, {userAge} ans</Text>
-              )}
-            </Text>
-            <Text style={styles.profileEmailSmall}>{user?.email}</Text>
-          </View>
+          <Text style={styles.profileNameSmall}>
+            {displayName || 'Utilisateur'}
+          </Text>
         </Animated.View>
       </Animated.View>
 
@@ -251,7 +254,8 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    justifyContent: 'center',
+    gap: 12,
   },
   profileImageContainerSmall: {
     width: 46,
@@ -263,19 +267,9 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   profileNameSmall: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
     color: Colors.grayDark,
-  },
-  profileAgeInline: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: Colors.gray,
-  },
-  profileEmailSmall: {
-    fontSize: 12,
-    color: Colors.gray,
-    marginTop: 2,
   },
   profileImageContainer: {
     width: 120,
