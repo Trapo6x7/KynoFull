@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   StyleSheet,
   ScrollView,
   Dimensions,
-  Modal,
   ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
@@ -17,22 +16,23 @@ import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/src/constants/colors';
 import raceService from '@/src/services/raceService';
 import type { Race } from '@/src/types';
+import { OptionPickerModal, PickerOption } from '@/src/components/onboarding/OptionPickerModal';
 
 const { width } = Dimensions.get('window');
 
-const GENRE_OPTIONS = [
-  { label: 'Mâle', value: 'male' },
+const GENRE_OPTIONS: PickerOption[] = [
+  { label: 'Male', value: 'male' },
   { label: 'Femelle', value: 'female' },
 ];
 
-const SIZE_OPTIONS = [
+const SIZE_OPTIONS: PickerOption[] = [
   { label: 'Petit', value: 'small' },
   { label: 'Moyen', value: 'medium' },
   { label: 'Grand', value: 'large' },
 ];
 
-const AGE_OPTIONS = Array.from({ length: 21 }, (_, i) => ({
-  label: i === 0 ? 'Moins d\'1 an' : `${i} an${i > 1 ? 's' : ''}`,
+const AGE_OPTIONS: PickerOption[] = Array.from({ length: 21 }, (_, i) => ({
+  label: i === 0 ? "Moins d'1 an" : `${i} an${i > 1 ? 's' : ''}`,
   value: i.toString(),
 }));
 
@@ -49,6 +49,7 @@ export default function PetDetailScreen() {
   const [showGenrePicker, setShowGenrePicker] = useState(false);
   const [showRacePicker, setShowRacePicker] = useState(false);
   const [showAgePicker, setShowAgePicker] = useState(false);
+  const [raceOptions, setRaceOptions] = useState<PickerOption[]>([]);
 
   const [fontsLoaded] = useFonts({
     Manrope_400Regular,
@@ -56,7 +57,6 @@ export default function PetDetailScreen() {
     Manrope_600SemiBold,
   });
 
-  // Charger les races au montage du composant
   useEffect(() => {
     loadRaces();
   }, []);
@@ -65,6 +65,7 @@ export default function PetDetailScreen() {
     try {
       const data = await raceService.getRaces();
       setRaces(data);
+      setRaceOptions(data.map(r => ({ label: r.name, value: String(r.id) })));
     } catch (error) {
       console.error('Erreur lors du chargement des races:', error);
     } finally {
@@ -79,14 +80,7 @@ export default function PetDetailScreen() {
       try {
         const stored = await AsyncStorage.getItem('onboarding');
         const onboarding = stored ? JSON.parse(stored) : {};
-        onboarding.pet = {
-          name,
-          raceId,
-          genre,
-          taille,
-          age,
-          description,
-        };
+        onboarding.pet = { name, raceId, genre, taille, age, description };
         await AsyncStorage.setItem('onboarding', JSON.stringify(onboarding));
       } catch (e) {
         console.error('Erreur sauvegarde onboarding (pet-detail):', e);
@@ -96,26 +90,10 @@ export default function PetDetailScreen() {
     })();
   };
 
-  const getGenreLabel = () => {
-    const option = GENRE_OPTIONS.find(opt => opt.value === genre);
-    return option ? option.label : 'Sélectionnez un genre';
-  };
-
-  const getTailleLabel = () => {
-    const option = SIZE_OPTIONS.find(opt => opt.value === taille);
-    return option ? option.label : 'Sélectionnez une taille';
-  };
-
-  const getRaceLabel = () => {
-    if (!races || races.length === 0) return 'Sélectionnez une race';
-    const selectedRace = races.find(r => r.id === raceId);
-    return selectedRace ? selectedRace.name : 'Sélectionnez une race';
-  };
-
-  const getAgeLabel = () => {
-    const option = AGE_OPTIONS.find(opt => opt.value === age);
-    return option ? option.label : 'Sélectionnez un âge';
-  };
+  const getGenreLabel = () => GENRE_OPTIONS.find(opt => opt.value === genre)?.label ?? 'Selectionnez un genre';
+  const getTailleLabel = () => SIZE_OPTIONS.find(opt => opt.value === taille)?.label ?? 'Selectionnez une taille';
+  const getRaceLabel = () => races.find(r => r.id === raceId)?.name ?? 'Selectionnez une race';
+  const getAgeLabel = () => AGE_OPTIONS.find(opt => opt.value === age)?.label ?? "Selectionnez un age";
 
   return (
     <View style={styles.container}>
@@ -126,7 +104,7 @@ export default function PetDetailScreen() {
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -146,7 +124,7 @@ export default function PetDetailScreen() {
         {/* Race */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Race</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.pickerButton}
             onPress={() => setShowRacePicker(true)}
             disabled={loadingRaces}
@@ -167,10 +145,7 @@ export default function PetDetailScreen() {
         {/* Genre */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Genre</Text>
-          <TouchableOpacity 
-            style={styles.pickerButton}
-            onPress={() => setShowGenrePicker(true)}
-          >
+          <TouchableOpacity style={styles.pickerButton} onPress={() => setShowGenrePicker(true)}>
             <Text style={[styles.pickerButtonText, !genre && styles.placeholderText]}>
               {getGenreLabel()}
             </Text>
@@ -181,10 +156,7 @@ export default function PetDetailScreen() {
         {/* Taille */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Taille</Text>
-          <TouchableOpacity
-            style={styles.pickerButton}
-            onPress={() => setShowSizePicker(true)}
-          >
+          <TouchableOpacity style={styles.pickerButton} onPress={() => setShowSizePicker(true)}>
             <Text style={[styles.pickerButtonText, !taille && styles.placeholderText]}>
               {getTailleLabel()}
             </Text>
@@ -195,10 +167,7 @@ export default function PetDetailScreen() {
         {/* Age */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Age</Text>
-          <TouchableOpacity
-            style={styles.pickerButton}
-            onPress={() => setShowAgePicker(true)}
-          >
+          <TouchableOpacity style={styles.pickerButton} onPress={() => setShowAgePicker(true)}>
             <Text style={[styles.pickerButtonText, !age && styles.placeholderText]}>
               {getAgeLabel()}
             </Text>
@@ -229,167 +198,40 @@ export default function PetDetailScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Modal Genre Picker */}
-      <Modal
+      <OptionPickerModal
         visible={showGenrePicker}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowGenrePicker(false)}
-      >
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          activeOpacity={1} 
-          onPress={() => setShowGenrePicker(false)}
-        >
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Sélectionnez un genre</Text>
-            {GENRE_OPTIONS.map((option) => (
-              <TouchableOpacity
-                key={option.value}
-                style={[
-                  styles.modalOption,
-                  genre === option.value && styles.modalOptionSelected
-                ]}
-                onPress={() => {
-                  setGenre(option.value);
-                  setShowGenrePicker(false);
-                }}
-              >
-                <Text style={[
-                  styles.modalOptionText,
-                  genre === option.value && styles.modalOptionTextSelected
-                ]}>
-                  {option.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* Modal Race Picker */}
-      <Modal
+        title="Selectionnez un genre"
+        options={GENRE_OPTIONS}
+        selectedValue={genre}
+        onSelect={setGenre}
+        onClose={() => setShowGenrePicker(false)}
+      />
+      <OptionPickerModal
         visible={showRacePicker}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowRacePicker(false)}
-      >
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          activeOpacity={1} 
-          onPress={() => setShowRacePicker(false)}
-        >
-          <View style={[styles.modalContent, { maxHeight: '70%' }]}>
-            <Text style={styles.modalTitle}>Sélectionnez une race</Text>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {loadingRaces ? (
-                <Text style={styles.placeholderText}>Chargement des races...</Text>
-              ) : races && races.length > 0 ? (
-                races.map((race) => (
-                  <TouchableOpacity
-                    key={race.id}
-                    style={[
-                      styles.modalOption,
-                      raceId === race.id && styles.modalOptionSelected
-                    ]}
-                    onPress={() => {
-                      setRaceId(race.id);
-                      setShowRacePicker(false);
-                    }}
-                  >
-                    <Text style={[
-                      styles.modalOptionText,
-                      raceId === race.id && styles.modalOptionTextSelected
-                    ]}>
-                      {race.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))
-              ) : (
-                <Text style={styles.placeholderText}>Aucune race trouvée.</Text>
-              )}
-            </ScrollView>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* Modal Size Picker */}
-      <Modal
+        title="Selectionnez une race"
+        options={raceOptions}
+        selectedValue={String(raceId)}
+        onSelect={(v) => setRaceId(Number(v))}
+        onClose={() => setShowRacePicker(false)}
+        scrollable
+      />
+      <OptionPickerModal
         visible={showSizePicker}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowSizePicker(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowSizePicker(false)}
-        >
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Sélectionnez la taille</Text>
-            {SIZE_OPTIONS.map((option) => (
-              <TouchableOpacity
-                key={option.value}
-                style={[
-                  styles.modalOption,
-                  taille === option.value && styles.modalOptionSelected,
-                ]}
-                onPress={() => {
-                  setTaille(option.value);
-                  setShowSizePicker(false);
-                }}
-              >
-                <Text style={[
-                  styles.modalOptionText,
-                  taille === option.value && styles.modalOptionTextSelected,
-                ]}>
-                  {option.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* Modal Age Picker */}
-      <Modal
+        title="Selectionnez la taille"
+        options={SIZE_OPTIONS}
+        selectedValue={taille}
+        onSelect={setTaille}
+        onClose={() => setShowSizePicker(false)}
+      />
+      <OptionPickerModal
         visible={showAgePicker}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowAgePicker(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowAgePicker(false)}
-        >
-          <View style={[styles.modalContent, { maxHeight: '70%' }]}>
-            <Text style={styles.modalTitle}>Sélectionnez l'âge</Text>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {AGE_OPTIONS.map((option) => (
-                <TouchableOpacity
-                  key={option.value}
-                  style={[
-                    styles.modalOption,
-                    age === option.value && styles.modalOptionSelected,
-                  ]}
-                  onPress={() => {
-                    setAge(option.value);
-                    setShowAgePicker(false);
-                  }}
-                >
-                  <Text style={[
-                    styles.modalOptionText,
-                    age === option.value && styles.modalOptionTextSelected,
-                  ]}>
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        title="Selectionnez l'age"
+        options={AGE_OPTIONS}
+        selectedValue={age}
+        onSelect={setAge}
+        onClose={() => setShowAgePicker(false)}
+        scrollable
+      />
     </View>
   );
 }
@@ -407,16 +249,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 15,
     backgroundColor: Colors.backgroundLight,
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeText: {
-    fontSize: 20,
-    color: Colors.grayDark,
   },
   headerTitle: {
     fontSize: 16,
@@ -492,42 +324,5 @@ const styles = StyleSheet.create({
     fontFamily: 'Manrope_600SemiBold',
     color: Colors.grayDark,
     letterSpacing: 1,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: Colors.white,
-    borderRadius: 15,
-    width: width * 0.8,
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontFamily: 'Manrope_600SemiBold',
-    color: Colors.grayDark,
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  modalOption: {
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    marginBottom: 8,
-  },
-  modalOptionSelected: {
-    backgroundColor: Colors.buttonPrimary,
-  },
-  modalOptionText: {
-    fontSize: 14,
-    fontFamily: 'Manrope_500Medium',
-    color: Colors.grayDark,
-    textAlign: 'center',
-  },
-  modalOptionTextSelected: {
-    fontFamily: 'Manrope_600SemiBold',
   },
 });

@@ -106,7 +106,7 @@ export default function InviteFriendsScreen() {
           <Ionicons
             name={previewOpen ? 'chevron-up' : 'chevron-down'}
             size={18}
-            color={Colors.primary}
+            color={Colors.grayDark}
           />
         </TouchableOpacity>
         {previewOpen && (
@@ -127,8 +127,8 @@ export default function InviteFriendsScreen() {
               <Ionicons
                 name={opt.icon}
                 size={20}
-                color={opt.primary ? Colors.white : Colors.primary}
-                style={{ marginRight: 10 }}
+                color={opt.primary ? Colors.grayDark : Colors.grayDark}
+                style={{ marginRight: 10 }}l
               />
               <Text style={[styles.actionText, opt.primary && styles.actionTextPrimary]}>
                 {opt.label}
@@ -189,12 +189,12 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 4,
     borderLeftWidth: 4,
-    borderLeftColor: Colors.primary,
+    borderLeftColor: Colors.primaryLight,
   },
   accordionLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: Colors.primary,
+    color: Colors.grayDark,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 28,
     borderLeftWidth: 4,
-    borderLeftColor: Colors.primary,
+    borderLeftColor: Colors.primaryLight,
   },
   previewText: {
     fontSize: 13,
@@ -224,19 +224,19 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     paddingVertical: 15,
     borderWidth: 2,
-    borderColor: Colors.primary,
+    borderColor: Colors.grayDark,
     backgroundColor: Colors.white,
   },
   actionButtonPrimary: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryLight,
+    borderColor: Colors.primaryLight,
   },
   actionText: {
     fontSize: 15,
     fontWeight: '700',
-    color: Colors.primary,
+    color: Colors.grayDark,
   },
   actionTextPrimary: {
-    color: Colors.white,
+    color: Colors.grayDark,
   },
 });

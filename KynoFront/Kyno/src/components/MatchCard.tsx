@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/src/constants/colors';
-import type { MatchViewModel } from '@/hooks/useMatches';
+import type { MatchViewModel } from '@/src/hooks/useMatches';
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.85;

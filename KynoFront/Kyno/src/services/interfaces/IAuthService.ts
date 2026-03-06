@@ -23,6 +23,14 @@ export interface UpdateUserData {
   city?: string;
   keywords?: string[];
   privateMode?: boolean;
+  // Filtres de match
+  filterGender?: string | null;
+  filterDistanceKm?: number | null;
+  filterAgeMin?: number | null;
+  filterAgeMax?: number | null;
+  filterDogGender?: string | null;
+  filterDogSize?: string | null;
+  filterRace?: string | null; // IRI ex: '/api/races/5'
 }
 
 export interface IAuthService {

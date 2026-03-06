@@ -7,7 +7,7 @@ import { Platform, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useColorScheme } from '@/src/hooks/use-color-scheme';
 import { AuthProvider } from '@/src/context/AuthContext';
 import { ServicesProvider } from '@/src/context/ServicesContext';
 import { BadgeProvider } from '@/src/context/BadgeContext';

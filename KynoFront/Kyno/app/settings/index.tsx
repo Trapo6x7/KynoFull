@@ -15,6 +15,7 @@ import Colors from '@/src/constants/colors';
 import { useAuth } from '@/src/context/AuthContext';
 import { useServices } from '@/src/context/ServicesContext';
 import { API_CONFIG } from '@/src/config/api';
+import { getAge } from '@/src/utils/formatters';
 
 const toImageUrl = (filename: string) =>
   `${API_CONFIG.BASE_URL}/uploads/images/${filename}`;
@@ -58,16 +59,7 @@ export default function SettingsScreen() {
       : (user as any).name ?? ''
     : '';
 
-  const userAge = user?.birthdate
-    ? (() => {
-        const birth = new Date(user.birthdate);
-        const today = new Date();
-        let age = today.getFullYear() - birth.getFullYear();
-        const m = today.getMonth() - birth.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-        return age;
-      })()
-    : null;
+  const userAge = user?.birthdate ? getAge(user.birthdate) : null;
 
   const handleLogout = async () => {
     try {

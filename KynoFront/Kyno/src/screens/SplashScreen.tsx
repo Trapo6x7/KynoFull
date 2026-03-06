@@ -13,7 +13,7 @@ import { router } from 'expo-router';
 import { useFonts, Manrope_400Regular, Manrope_500Medium, Manrope_600SemiBold, Manrope_700Bold } from '@expo-google-fonts/manrope';
 import Colors from '@/src/constants/colors';
 import { useAuth } from '@/src/context/AuthContext';
-import { useSplashAnimation } from '@/hooks/useSplashAnimation';
+import { useSplashAnimation } from '@/src/hooks/useSplashAnimation';
 
 const { width, height } = Dimensions.get('window');
 

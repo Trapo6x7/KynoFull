@@ -120,17 +120,6 @@ export default function RegisterScreen() {
       }, 500);
     } catch (error: any) {
       setShowLoading(false);
-      console.log("=== ERREUR INSCRIPTION ===");
-      console.log("Erreur complète:", JSON.stringify(error, null, 2));
-      console.log("Message:", error.message);
-      console.log("Réponse status:", error.response?.status);
-      console.log(
-        "Réponse data:",
-        JSON.stringify(error.response?.data, null, 2),
-      );
-      console.log("Réponse headers:", error.response?.headers);
-      console.log("========================");
-
       const message =
         error.response?.data?.violations?.[0]?.message ||
         error.response?.data?.message ||

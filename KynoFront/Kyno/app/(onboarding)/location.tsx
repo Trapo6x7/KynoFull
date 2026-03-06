@@ -5,30 +5,20 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Image,
-  Dimensions,
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from '@/src/context/AuthContext';
-import { useServices } from '@/src/context/ServicesContext';
-import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { useFonts, Manrope_400Regular, Manrope_500Medium, Manrope_600SemiBold } from '@expo-google-fonts/manrope';
 import * as Location from 'expo-location';
 import MapView, { Marker } from 'react-native-maps';
 import Colors from '@/src/constants/colors';
-
-const { width } = Dimensions.get('window');
-const IMAGE_SIZE = (width - 80) / 3;
+import { useOnboardingFinish } from '@/src/hooks/useOnboardingFinish';
 
 export default function LocationScreen() {
-  const { refreshUser, user: currentUser } = useAuth();
-  const { authService, dogService } = useServices();
-  const { redirectAfterAuth } = useAuthRedirect();
-  const [images] = useState<(string | null)[]>([null, null, null, null, null, null]);
   const [location, setLocation] = useState<{latitude: number; longitude: number} | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const handleFinish = useOnboardingFinish(location);
 
   const [fontsLoaded] = useFonts({
     Manrope_400Regular,
@@ -54,163 +44,11 @@ export default function LocationScreen() {
         latitude: currentLocation.coords.latitude,
         longitude: currentLocation.coords.longitude,
       });
-    } catch (error) {
-      console.error('Erreur de localisation:', error);
+    } catch {
+      // silently fail — location stays null
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleFinish = () => {
-    (async () => {
-      try {
-        const stored = await AsyncStorage.getItem('onboarding');
-        const onboarding = stored ? JSON.parse(stored) : {};
-        // Onboarding data available in variable 'onboarding'
-
-        // Get current user ID
-        const userId = currentUser?.id;
-
-        // Update user data (description, gender, profession, location)
-        if (userId && (onboarding.userDetails || location)) {
-          try {
-            // Updating user data
-            const updateData: any = {};
-            
-            if (onboarding.userDetails) {
-              if (onboarding.userDetails.description) updateData.description = onboarding.userDetails.description;
-              if (onboarding.userDetails.genre) updateData.gender = onboarding.userDetails.genre;
-              if (onboarding.userDetails.profession) updateData.profession = onboarding.userDetails.profession;
-            }
-            
-            // Ajouter les keywords utilisateur
-            if (onboarding.userKeywords && onboarding.userKeywords.length > 0) {
-              updateData.keywords = onboarding.userKeywords;
-            }
-            
-            if (location) {
-              // Try to resolve a human-readable city from coords
-              try {
-                const placemarks = await Location.reverseGeocodeAsync({ latitude: location.latitude, longitude: location.longitude });
-                const placemark = placemarks && placemarks.length > 0 ? placemarks[0] : null;
-                if (placemark) {
-                  if (placemark.city) updateData.city = placemark.city;
-                  else if (placemark.region) updateData.city = placemark.region;
-                  else if (placemark.name) updateData.city = placemark.name;
-                }
-              } catch (e) {
-                console.error('Erreur reverseGeocode:', e);
-              }
-
-              updateData.latitude = location.latitude.toString();
-              updateData.longitude = location.longitude.toString();
-            }
-            
-            if (Object.keys(updateData).length > 0) {
-              await authService.updateUser(userId, updateData);
-              // User data updated
-            }
-          } catch (e: any) {
-            console.error('❌ Erreur mise à jour user:', e);
-            console.error('Response:', e.response?.data);
-          }
-        }
-
-        // Upload all profile images if present
-        if (onboarding.userImages && onboarding.userImages.length > 0) {
-          // Uploading profile images if any
-          for (const uri of onboarding.userImages) {
-            try {
-              await authService.updateProfileImage(uri);
-              // profile image uploaded
-            } catch (e: any) {
-              console.error('❌ Erreur upload profile image:', e);
-              console.error('Response:', e.response?.data);
-            }
-          }
-        }
-
-        // Create dog if pet data exists
-        let createdDog: any = null;
-        if (onboarding.pet) {
-          try {
-            const createData: any = {
-              name: onboarding.pet.name,
-              description: onboarding.pet.description,
-              gender: onboarding.pet.genre,
-            };
-            
-            // Add raceId only if provided
-            if (onboarding.pet.raceId) {
-              createData.raceId = onboarding.pet.raceId;
-            }
-            
-            // Add size if provided
-            if (onboarding.pet.taille) {
-              createData.size = onboarding.pet.taille;
-            }
-            
-            // Calculate birthDate from age if provided
-            if (onboarding.pet.age) {
-              const currentYear = new Date().getFullYear();
-              const ageNumber = typeof onboarding.pet.age === 'string' 
-                ? parseInt(onboarding.pet.age, 10) 
-                : onboarding.pet.age;
-              const birthYear = currentYear - ageNumber;
-              // Backend expects ISO date format (YYYY-MM-DD)
-              createData.birthDate = `${birthYear}-01-01`;
-            }
-            
-            // Ajouter les keywords du chien
-            if (onboarding.petKeywords && onboarding.petKeywords.length > 0) {
-              createData.keywords = onboarding.petKeywords;
-            }
-
-            console.log('🐕 Creating dog with data:', JSON.stringify(createData, null, 2));
-            createdDog = await dogService.createDog(createData);
-            console.log('✅ Dog created:', createdDog);
-          } catch (e: any) {
-            console.error('❌ Erreur création chien:', e);
-            console.error('Status:', e.response?.status);
-            console.error('Data:', JSON.stringify(e.response?.data, null, 2));
-            console.error('Headers:', e.response?.headers);
-            Alert.alert(
-              'Erreur',
-              'Impossible de créer le profil de votre chien. Veuillez réessayer.',
-              [{ text: 'OK' }]
-            );
-          }
-        }
-
-        // Upload pet images
-        if (createdDog && onboarding.petImages && onboarding.petImages.length > 0) {
-          for (const uri of onboarding.petImages) {
-            try {
-              await dogService.updateDogImage(createdDog.id, uri);
-            } catch (e) {
-              console.error('Erreur upload image chien:', e);
-            }
-          }
-        }
-
-        // Clear onboarding storage
-        await AsyncStorage.removeItem('onboarding');
-
-        // Refresh user data
-        await refreshUser();
-        // Récupérer l'utilisateur frais pour déterminer la route
-        try {
-          const freshUser = await authService.getMe();
-          redirectAfterAuth(freshUser);
-        } catch {
-          // Si getMe échoue, l'utilisateur verra la route par défaut
-          redirectAfterAuth({ isVerified: false, is_complete: false } as any);
-        }
-      } catch (error) {
-        console.error('Erreur finalisation onboarding:', error);
-        redirectAfterAuth({ isVerified: false, is_complete: false } as any);
-      }
-    })();
   };
 
   if (!fontsLoaded) return null;
@@ -234,23 +72,6 @@ export default function LocationScreen() {
         <Text style={styles.subtitle}>
           Où vous promenez-vous ? Visible uniquement aux matches, vous pouvez désactiver la localisation à tout moment.
         </Text>
-
-        {/* Grille d'images (preview) */}
-        {/* <View style={styles.imageGrid}>
-          {images.map((image, index) => (
-            <View key={index} style={styles.imageBox}>
-              {image ? (
-                <Image source={{ uri: image }} style={styles.image} />
-              ) : (
-                <View style={styles.imagePlaceholder}>
-                  <View style={styles.cameraIcon}>
-                    <Text style={styles.cameraIconText}>📷</Text>
-                  </View>
-                </View>
-                // Creating dog with data available in createData
-            </View>
-                // Dog created
-        </View> */}
 
         {/* Carte */}
         <View style={styles.mapContainer}>
@@ -351,40 +172,6 @@ const styles = StyleSheet.create({
     color: Colors.grayDark,
     marginBottom: 25,
     lineHeight: 18,
-  },
-  imageGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 20,
-  },
-  imageBox: {
-    width: IMAGE_SIZE,
-    height: IMAGE_SIZE,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  imagePlaceholder: {
-    flex: 1,
-    backgroundColor: Colors.buttonPrimary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-  },
-  cameraIcon: {
-    width: 35,
-    height: 35,
-    borderRadius: 17.5,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cameraIconText: {
-    fontSize: 16,
-  },
-  image: {
-    width: '100%',
-    height: '100%',
   },
   mapContainer: {
     height: 180,

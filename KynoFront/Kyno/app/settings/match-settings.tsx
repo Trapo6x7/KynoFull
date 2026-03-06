@@ -1,21 +1,23 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+﻿import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  PanResponder,
-  LayoutChangeEvent,
-  Modal,
-  FlatList,
+  ActivityIndicator,
 } from 'react-native';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { router, useFocusEffect } from 'expo-router';
 import SettingsLayout from '@/src/components/SettingsLayout';
 import Colors from '@/src/constants/colors';
 import raceService from '@/src/services/raceService';
+import { useAuth } from '@/src/context/AuthContext';
+import { useServices } from '@/src/context/ServicesContext';
 import type { Race } from '@/src/types';
+import { SimpleSlider } from '@/src/components/ui/SimpleSlider';
+import { RangeSlider } from '@/src/components/ui/RangeSlider';
+import { Dropdown } from '@/src/components/ui/Dropdown';
+import { RaceDropdown } from '@/src/components/ui/RaceDropdown';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,271 +41,12 @@ const DISTANCE_MAX = 100;
 const AGE_MIN = 18;
 const AGE_MAX = 80;
 
-const THUMB = 22;
-
-// ─── Slider simple ────────────────────────────────────────────────────────────
-
-function snap(val: number, step: number) {
-  return Math.round(val / step) * step;
-}
-
-function SimpleSlider({
-  value,
-  min,
-  max,
-  step = 1,
-  onChange,
-}: {
-  value: number;
-  min: number;
-  max: number;
-  step?: number;
-  onChange: (v: number) => void;
-}) {
-  const [width, setWidth] = useState(0);
-  const widthRef = useRef(0);
-  const startRatio = useRef(0);
-  const valueRef = useRef(value);
-  useEffect(() => { valueRef.current = value; }, [value]);
-
-  const ratio = width > 0 ? (value - min) / (max - min) : 0;
-  const thumbLeft = ratio * width - THUMB / 2;
-
-  const pan = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (evt) => {
-        if (widthRef.current > 0) {
-          const r = Math.min(Math.max(evt.nativeEvent.locationX / widthRef.current, 0), 1);
-          startRatio.current = r;
-          onChange(snap(min + r * (max - min), step));
-        }
-      },
-      onPanResponderMove: (_, gs) => {
-        if (widthRef.current === 0) return;
-        const r = Math.min(Math.max(startRatio.current + gs.dx / widthRef.current, 0), 1);
-        onChange(snap(min + r * (max - min), step));
-      },
-    })
-  ).current;
-
-  return (
-    <View
-      style={styles.sliderContainer}
-      onLayout={(e: LayoutChangeEvent) => {
-        widthRef.current = e.nativeEvent.layout.width;
-        setWidth(e.nativeEvent.layout.width);
-      }}
-      {...pan.panHandlers}
-    >
-      <View style={styles.sliderTrackBg} />
-      {width > 0 && (
-        <>
-          <View style={[styles.sliderFillAbs, { width: ratio * width }]} />
-          <View style={[styles.sliderThumbAbs, { left: thumbLeft }]} />
-        </>
-      )}
-    </View>
-  );
-}
-
-// ─── Range Slider (2 poignées) ────────────────────────────────────────────────
-
-function RangeSlider({
-  min,
-  max,
-  valueMin,
-  valueMax,
-  onChangeMin,
-  onChangeMax,
-  step,
-}: {
-  min: number;
-  max: number;
-  valueMin: number;
-  valueMax: number;
-  onChangeMin: (v: number) => void;
-  onChangeMax: (v: number) => void;
-  step?: number;
-}) {
-  const stepVal = step ?? 1;
-  const [width, setWidth] = useState(0);
-  const widthRef = useRef(0);
-  const valueMinRef = useRef(valueMin);
-  const valueMaxRef = useRef(valueMax);
-  const startRatioMin = useRef(0);
-  const startRatioMax = useRef(0);
-
-  useEffect(() => { valueMinRef.current = valueMin; }, [valueMin]);
-  useEffect(() => { valueMaxRef.current = valueMax; }, [valueMax]);
-
-  const ratioMin = width > 0 ? (valueMin - min) / (max - min) : 0;
-  const ratioMax = width > 0 ? (valueMax - min) / (max - min) : 1;
-  const thumbMinLeft = ratioMin * width - THUMB / 2;
-  const thumbMaxLeft = ratioMax * width - THUMB / 2;
-
-  const panMin = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        startRatioMin.current = (valueMinRef.current - min) / (max - min);
-      },
-      onPanResponderMove: (_, gs) => {
-        if (widthRef.current === 0) return;
-        const r = Math.min(Math.max(startRatioMin.current + gs.dx / widthRef.current, 0), 1);
-        const newVal = snap(min + r * (max - min), stepVal);
-        if (newVal < valueMaxRef.current) onChangeMin(newVal);
-      },
-    })
-  ).current;
-
-  const panMax = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        startRatioMax.current = (valueMaxRef.current - min) / (max - min);
-      },
-      onPanResponderMove: (_, gs) => {
-        if (widthRef.current === 0) return;
-        const r = Math.min(Math.max(startRatioMax.current + gs.dx / widthRef.current, 0), 1);
-        const newVal = snap(min + r * (max - min), stepVal);
-        if (newVal > valueMinRef.current) onChangeMax(newVal);
-      },
-    })
-  ).current;
-
-  return (
-    <View
-      style={styles.sliderContainer}
-      onLayout={(e: LayoutChangeEvent) => {
-        widthRef.current = e.nativeEvent.layout.width;
-        setWidth(e.nativeEvent.layout.width);
-      }}
-    >
-      <View style={styles.sliderTrackBg} />
-      {width > 0 && (
-        <>
-          <View style={[styles.sliderFillAbs, {
-            left: ratioMin * width,
-            width: (ratioMax - ratioMin) * width,
-          }]} />
-          <View style={[styles.sliderThumbAbs, { left: thumbMinLeft }]} {...panMin.panHandlers} />
-          <View style={[styles.sliderThumbAbs, { left: thumbMaxLeft }]} {...panMax.panHandlers} />
-        </>
-      )}
-    </View>
-  );
-}
-
-// ─── Dropdown générique ───────────────────────────────────────────────────────
-
-function Dropdown({
-  placeholder,
-  value,
-  options,
-  onSelect,
-}: {
-  placeholder: string;
-  value: string | null;
-  options: string[];
-  onSelect: (v: string | null) => void;
-}) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <>
-      <TouchableOpacity style={styles.dropdown} onPress={() => setOpen(true)} activeOpacity={0.8}>
-        <Text style={[styles.dropdownText, !value && styles.dropdownPlaceholder]}>
-          {value ?? placeholder}
-        </Text>
-        <Ionicons name="chevron-down" size={18} color={Colors.primary} />
-      </TouchableOpacity>
-
-      <Modal transparent visible={open} animationType="fade" onRequestClose={() => setOpen(false)}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setOpen(false)}>
-          <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>{placeholder}</Text>
-            <FlatList
-              data={['Indifférent', ...options.filter(o => o !== 'Indifférent')]}
-              keyExtractor={(item) => item}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[styles.modalOption, value === item && styles.modalOptionSelected]}
-                  onPress={() => {
-                    onSelect(item === 'Indifférent' ? null : item);
-                    setOpen(false);
-                  }}
-                >
-                  <Text style={[styles.modalOptionText, value === item && styles.modalOptionTextSelected]}>
-                    {item}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            />
-          </View>
-        </TouchableOpacity>
-      </Modal>
-    </>
-  );
-}
-
-// ─── Dropdown Race ─────────────────────────────────────────────────────────────
-
-function RaceDropdown({
-  races,
-  selectedId,
-  onSelect,
-}: {
-  races: Race[];
-  selectedId: number | null;
-  onSelect: (id: number | null) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const selectedName = races.find(r => r.id === selectedId)?.name ?? null;
-
-  return (
-    <>
-      <TouchableOpacity style={styles.dropdown} onPress={() => setOpen(true)} activeOpacity={0.8}>
-        <Text style={[styles.dropdownText, !selectedName && styles.dropdownPlaceholder]}>
-          {selectedName ?? 'Sélectionnez une race'}
-        </Text>
-        <Ionicons name="chevron-down" size={18} color={Colors.primary} />
-      </TouchableOpacity>
-
-      <Modal transparent visible={open} animationType="fade" onRequestClose={() => setOpen(false)}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setOpen(false)}>
-          <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>Race</Text>
-            <FlatList
-              data={[{ id: 0, name: 'Indifférent' } as Race, ...races]}
-              keyExtractor={(item) => String(item.id)}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[styles.modalOption, selectedId === item.id && styles.modalOptionSelected]}
-                  onPress={() => {
-                    onSelect(item.id === 0 ? null : item.id);
-                    setOpen(false);
-                  }}
-                >
-                  <Text style={[styles.modalOptionText, selectedId === item.id && styles.modalOptionTextSelected]}>
-                    {item.name}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            />
-          </View>
-        </TouchableOpacity>
-      </Modal>
-    </>
-  );
-}
-
 // ─── Écran principal ──────────────────────────────────────────────────────────
 
 export default function MatchSettingsScreen() {
+  const { user, refreshUser } = useAuth();
+  const { authService } = useServices();
+  const [saving, setSaving] = useState(false);
   const [filters, setFilters] = useState<MatchFilters>({
     gender: null,
     distanceKm: 50,
@@ -314,18 +57,68 @@ export default function MatchSettingsScreen() {
     raceId: null,
   });
   const [races, setRaces] = useState<Race[]>([]);
+  // Keep a ref so the useFocusEffect cleanup always has the latest filters
+  const filtersRef = useRef(filters);
+  useEffect(() => { filtersRef.current = filters; }, [filters]);
+
+  // Auto-save when leaving the screen (back gesture, hardware back, etc.)
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        if (!user) return;
+        authService.updateUser(user.id, {
+          filterGender: filtersRef.current.gender,
+          filterDistanceKm: filtersRef.current.distanceKm,
+          filterAgeMin: filtersRef.current.ageMin,
+          filterAgeMax: filtersRef.current.ageMax,
+          filterDogGender: filtersRef.current.dogGender,
+          filterDogSize: filtersRef.current.dogSize,
+          filterRace: filtersRef.current.raceId ? `/api/races/${filtersRef.current.raceId}` : null,
+        }).then(() => refreshUser()).catch(() => {});
+      };
+    }, [user, authService, refreshUser]),
+  );
 
   useEffect(() => {
     raceService.getRaces().then(setRaces).catch(() => setRaces([]));
   }, []);
 
+  useEffect(() => {
+    if (!user) return;
+    setFilters({
+      gender: user.filterGender ?? null,
+      distanceKm: user.filterDistanceKm ?? 50,
+      ageMin: user.filterAgeMin ?? 18,
+      ageMax: user.filterAgeMax ?? 80,
+      dogGender: user.filterDogGender ?? null,
+      dogSize: user.filterDogSize ?? null,
+      raceId: user.filterRace?.id ?? null,
+    });
+  }, [user]);
+
   const set = useCallback(<K extends keyof MatchFilters>(key: K, val: MatchFilters[K]) => {
     setFilters(prev => ({ ...prev, [key]: val }));
   }, []);
 
-  const handleApply = () => {
-    // TODO : persister les filtres (AsyncStorage ou contexte global)
-    router.back();
+  const handleApply = async () => {
+    if (!user) return;
+    setSaving(true);
+    try {
+      // Explicit save via button — useFocusEffect cleanup will also fire but that's harmless
+      await authService.updateUser(user.id, {
+        filterGender: filters.gender,
+        filterDistanceKm: filters.distanceKm,
+        filterAgeMin: filters.ageMin,
+        filterAgeMax: filters.ageMax,
+        filterDogGender: filters.dogGender,
+        filterDogSize: filters.dogSize,
+        filterRace: filters.raceId ? `/api/races/${filters.raceId}` : null,
+      });
+      await refreshUser();
+      router.back();
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -396,8 +189,11 @@ export default function MatchSettingsScreen() {
         />
 
         {/* Bouton */}
-        <TouchableOpacity style={styles.applyButton} onPress={handleApply} activeOpacity={0.85}>
-          <Text style={styles.applyButtonText}>WOOF !</Text>
+        <TouchableOpacity style={styles.applyButton} onPress={handleApply} activeOpacity={0.85} disabled={saving}>
+          {saving
+            ? <ActivityIndicator color={Colors.white} />
+            : <Text style={styles.applyButtonText}>WOOF !</Text>
+          }
         </TouchableOpacity>
 
       </ScrollView>
@@ -435,102 +231,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.primary,
   },
-  // Dropdown
-  dropdown: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: Colors.primaryLight,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    backgroundColor: Colors.white,
-  },
-  dropdownText: {
-    fontSize: 14,
-    color: Colors.grayDark,
-  },
-  dropdownPlaceholder: {
-    color: Colors.gray,
-  },
-  // Slider
-  sliderContainer: {
-    height: 30,
-    justifyContent: 'center',
-    marginVertical: 4,
-  },
-  sliderTrackBg: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 13,
-    height: 4,
-    backgroundColor: Colors.grayLight,
-    borderRadius: 2,
-  },
-  sliderFillAbs: {
-    position: 'absolute',
-    left: 0,
-    top: 13,
-    height: 4,
-    backgroundColor: Colors.primary,
-    borderRadius: 2,
-  },
-  sliderThumbAbs: {
-    position: 'absolute',
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: Colors.primary,
-    top: 4,
-  },
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'flex-end',
-  },
-  modalSheet: {
-    backgroundColor: Colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: 20,
-    paddingBottom: 40,
-    paddingHorizontal: 20,
-    maxHeight: '60%',
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.grayDark,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  modalOption: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    marginBottom: 6,
-    // backgroundColor: Colors.backgroundLight,
-  },
-  modalOptionSelected: {
-    backgroundColor: Colors.primaryLight,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-  },
-  modalOptionText: {
-    fontSize: 15,
-    color: Colors.grayDark,
-  },
-  modalOptionTextSelected: {
-    color: Colors.primaryDark,
-    fontWeight: '600',
-  },
-  // Bouton
   applyButton: {
     marginTop: 32,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.primaryLight,
     borderRadius: 30,
     paddingVertical: 16,
     alignItems: 'center',
@@ -538,7 +241,7 @@ const styles = StyleSheet.create({
   applyButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.white,
+    color: Colors.grayDark,
     letterSpacing: 1,
   },
 });

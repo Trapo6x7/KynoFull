@@ -1,18 +1,14 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as NavigationBar from 'expo-navigation-bar';
 
-import ProfileDetailView from '@/components/ProfileDetailView';
-import Colors from '@/src/constants/colors';
-import { API_CONFIG } from '@/src/config/api';
-import type { User } from '@/src/types';
-import apiClient from '@/src/services/api';
+import { ProfileDetailView } from '@/src/components/profile';
+import { useUserProfile } from '@/src/hooks/useUserProfile';
+import { useProfileData } from '@/src/hooks/useProfileData';
 import { useAuth } from '@/src/context/AuthContext';
 import { useServices } from '@/src/context/ServicesContext';
-
-const toImageUrl = (filename: string) =>
-  `${API_CONFIG.BASE_URL}/uploads/images/${filename}`;
+import Colors from '@/src/constants/colors';
 
 export default function ProfileDetailScreen() {
   const params = useLocalSearchParams<{
@@ -29,10 +25,7 @@ export default function ProfileDetailScreen() {
 
   const { user: currentUser } = useAuth();
   const { matchService } = useServices();
-
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  /** toggle paw — même système que la carte */
+  const { user, isLoading } = useUserProfile(userId);
   const [showDog, setShowDog] = useState(false);
 
   useFocusEffect(
@@ -44,28 +37,8 @@ export default function ProfileDetailScreen() {
     }, []),
   );
 
-  useEffect(() => {
-    if (!userId) return;
-    (async () => {
-      try {
-        const res = await apiClient.get(`/api/users/${userId}`);
-        setUser(res.data);
-      } catch {
-        // fallback : on affiche avec les données initiales
-      } finally {
-        setIsLoading(false);
-      }
-    })();
-  }, [userId]);
-
-  const dog = user?.dogs?.[0];
+  const profileData = useProfileData(user, showDog);
   const ownerName = user?.name ?? user?.firstName ?? initialName ?? '...';
-
-  const ownerImages = (user?.images ?? []).map(toImageUrl);
-  const ownerKeywords = user?.keywords ?? [];
-
-  const dogImages = (dog?.images ?? []).map(toImageUrl);
-  const dogKeywords = dog?.keywords ?? [];
 
   if (isLoading) {
     return (
@@ -80,28 +53,26 @@ export default function ProfileDetailScreen() {
       <ProfileDetailView
         mode="preview"
         type={showDog ? 'pet' : 'owner'}
-        name={showDog ? (dog?.name ?? 'Chien') : ownerName}
-        mainImage={showDog ? dogImages[0] : (ownerImages[0] ?? initialImage)}
-        images={showDog ? dogImages : ownerImages}
-        keywords={showDog ? dogKeywords : ownerKeywords}
-        description={showDog ? dog?.description : user?.description}
+        name={showDog ? (profileData.dog?.name ?? 'Chien') : ownerName}
+        mainImage={showDog ? profileData.dogImages[0] : (profileData.ownerImages[0] ?? initialImage)}
+        images={profileData.currentImages}
+        keywords={profileData.currentKeywords}
+        description={profileData.currentDescription}
         onBack={() => router.back()}
-        /* Paw toggle — même système que la carte */
-        onSubProfile={dog ? () => setShowDog((v) => !v) : undefined}
+        onSubProfile={profileData.dog ? () => setShowDog((v) => !v) : undefined}
         subProfileIcon={showDog ? 'person-outline' : 'paw-outline'}
-        subProfileLabel={showDog ? ownerName : dog?.name}
+        subProfileLabel={showDog ? ownerName : profileData.dog?.name}
         onLike={hideActions ? undefined : async () => {
           if (userId) {
             try {
               const { isMatch } = await matchService.recordLike(Number(userId), currentUser?.id);
               if (isMatch) {
-                // Retour vers explore avec les infos du match pour afficher la modale
                 router.navigate({
                   pathname: '/(tabs)/explore',
                   params: {
                     matchedUserId: userId,
-                    matchedName: showDog ? (dog?.name ?? ownerName) : ownerName,
-                    matchedImage: showDog ? dogImages[0] : (ownerImages[0] ?? initialImage ?? ''),
+                    matchedName: showDog ? (profileData.dog?.name ?? ownerName) : ownerName,
+                    matchedImage: showDog ? profileData.dogImages[0] : (profileData.ownerImages[0] ?? initialImage ?? ''),
                   },
                 });
                 return;

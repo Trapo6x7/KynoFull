@@ -29,11 +29,11 @@ class Race
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['race:read'])]
+    #[Groups(['race:read', 'me:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['dog:read', 'dog:write', 'race:read'])]
+    #[Groups(['dog:read', 'dog:write', 'race:read', 'me:read'])]
     private ?string $name = null;
 
     /**

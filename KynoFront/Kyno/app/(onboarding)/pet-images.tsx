@@ -1,15 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
   Image,
   Dimensions,
-  Modal,
-  Animated,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useFonts, Manrope_400Regular, Manrope_500Medium, Manrope_600SemiBold } from '@expo-google-fonts/manrope';
@@ -18,6 +15,7 @@ import Colors from '@/src/constants/colors';
 import ImagePlaceholder from '@/src/components/ImagePlaceholder';
 import keywordService, { Keyword } from '@/src/services/keywordService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { KeywordPickerModal } from '@/src/components/onboarding/KeywordPickerModal';
 
 const { width } = Dimensions.get('window');
 const IMAGE_SIZE = (width - 80) / 3;
@@ -28,7 +26,6 @@ export default function PetImagesScreen() {
   const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
   const [showKeywordPicker, setShowKeywordPicker] = useState(false);
   const [loadingKeywords, setLoadingKeywords] = useState(true);
-  const slideAnim = useRef(new Animated.Value(0)).current;
 
   const [fontsLoaded] = useFonts({
     Manrope_400Regular,
@@ -40,29 +37,12 @@ export default function PetImagesScreen() {
     loadKeywords();
   }, []);
 
-  useEffect(() => {
-    if (showKeywordPicker) {
-      Animated.spring(slideAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 50,
-        friction: 8,
-      }).start();
-    } else {
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [showKeywordPicker]);
-
   const loadKeywords = async () => {
     try {
       const data = await keywordService.getKeywordsByCategory('dog');
       setAvailableKeywords(data);
     } catch (error) {
-      console.error('Erreur lors du chargement des mots-clés:', error);
+      console.error('Erreur lors du chargement des mots-cles:', error);
     } finally {
       setLoadingKeywords(false);
     }
@@ -90,11 +70,9 @@ export default function PetImagesScreen() {
   };
 
   const toggleKeyword = (keywordName: string) => {
-    if (selectedKeywords.includes(keywordName)) {
-      setSelectedKeywords(selectedKeywords.filter(k => k !== keywordName));
-    } else {
-      setSelectedKeywords([...selectedKeywords, keywordName]);
-    }
+    setSelectedKeywords(prev =>
+      prev.includes(keywordName) ? prev.filter(k => k !== keywordName) : [...prev, keywordName]
+    );
   };
 
   const removeKeyword = (keyword: string) => {
@@ -126,18 +104,16 @@ export default function PetImagesScreen() {
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Titre */}
         <Text style={styles.title}>Ajouter Des Images</Text>
         <Text style={styles.subtitle}>
           Souris, c'est l'heure du portrait ! Ajoute une photo adorable de ton chien.
         </Text>
 
-        {/* Grille d'images */}
         <View style={styles.imageGrid}>
           {images.map((image, index) => (
             <TouchableOpacity
@@ -156,114 +132,55 @@ export default function PetImagesScreen() {
           ))}
         </View>
 
-        {/* Mots Clés */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Mots Clés</Text>
-          <TouchableOpacity 
+          <Text style={styles.label}>Mots Cles</Text>
+          <TouchableOpacity
             style={styles.keywordButton}
             onPress={() => setShowKeywordPicker(true)}
             disabled={loadingKeywords}
           >
             <Text style={styles.keywordButtonText}>
-              {loadingKeywords ? 'Chargement...' : 'Sélectionner des mots-clés'}
+              {loadingKeywords ? 'Chargement...' : 'Selectionner des mots-cles'}
             </Text>
             <Text style={styles.keywordButtonIcon}>+</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Tags */}
         <View style={styles.tagsContainer}>
           {selectedKeywords.map((keyword, index) => (
             <View key={index} style={styles.tag}>
               <Text style={styles.tagText}>{keyword}</Text>
               <TouchableOpacity onPress={() => removeKeyword(keyword)}>
-                <Text style={styles.tagRemove}>✕</Text>
+                <Text style={styles.tagRemove}>x</Text>
               </TouchableOpacity>
             </View>
           ))}
         </View>
       </ScrollView>
 
-      {/* Bouton Suivant */}
       <View style={styles.footer}>
-        <TouchableOpacity 
-          style={[
-            styles.button,
-            selectedKeywords.length < 3 && styles.buttonDisabled
-          ]} 
+        <TouchableOpacity
+          style={[styles.button, selectedKeywords.length < 3 && styles.buttonDisabled]}
           onPress={handleNext}
           disabled={selectedKeywords.length < 3}
         >
           <Text style={styles.buttonText}>
-            {selectedKeywords.length < 3 
-              ? `Sélectionnez ${3 - selectedKeywords.length} mot(s) de plus` 
+            {selectedKeywords.length < 3
+              ? `Selectionnez ${3 - selectedKeywords.length} mot(s) de plus`
               : 'SUIVANT'}
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Modal Keyword Picker */}
-      <Modal
+      <KeywordPickerModal
         visible={showKeywordPicker}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowKeywordPicker(false)}
-      >
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          activeOpacity={1} 
-          onPress={() => setShowKeywordPicker(false)}
-        >
-          <Animated.View 
-            style={[
-              styles.modalContent,
-              {
-                transform: [{
-                  translateY: slideAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [600, 0],
-                  })
-                }]
-              }
-            ]}
-            onStartShouldSetResponder={() => true}
-          >
-            <Text style={styles.modalTitle}>Sélectionnez les mots-clés de votre chien</Text>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {availableKeywords && availableKeywords.length > 0 ? (
-                availableKeywords.map((keyword) => (
-                  <TouchableOpacity
-                    key={keyword.id}
-                    style={[
-                      styles.modalOption,
-                      selectedKeywords.includes(keyword.name) && styles.modalOptionSelected
-                    ]}
-                    onPress={() => toggleKeyword(keyword.name)}
-                  >
-                    <Text style={[
-                      styles.modalOptionText,
-                      selectedKeywords.includes(keyword.name) && styles.modalOptionTextSelected
-                    ]}>
-                      {keyword.name}
-                    </Text>
-                    {selectedKeywords.includes(keyword.name) && (
-                      <Text style={styles.checkmark}>✓</Text>
-                    )}
-                  </TouchableOpacity>
-                ))
-              ) : (
-                <Text style={styles.placeholderText}>Chargement des mots-clés...</Text>
-              )}
-            </ScrollView>
-            <TouchableOpacity 
-              style={styles.modalCloseButton}
-              onPress={() => setShowKeywordPicker(false)}
-            >
-              <Text style={styles.modalCloseButtonText}>Fermer</Text>
-            </TouchableOpacity>
-          </Animated.View>
-        </TouchableOpacity>
-      </Modal>
+        title="Selectionnez les mots-cles de votre chien"
+        keywords={availableKeywords}
+        selectedKeywords={selectedKeywords}
+        loadingKeywords={loadingKeywords}
+        onToggle={toggleKeyword}
+        onClose={() => setShowKeywordPicker(false)}
+      />
     </View>
   );
 }
@@ -280,16 +197,6 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingHorizontal: 20,
     paddingBottom: 15,
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeText: {
-    fontSize: 20,
-    color: Colors.grayDark,
   },
   headerTitle: {
     fontSize: 16,
@@ -338,17 +245,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 12,
   },
-  cameraIcon: {
-    width: 35,
-    height: 35,
-    borderRadius: 17.5,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cameraIconText: {
-    fontSize: 16,
-  },
   image: {
     width: '100%',
     height: '100%',
@@ -361,17 +257,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Manrope_500Medium',
     color: Colors.grayDark,
     marginBottom: 8,
-  },
-  input: {
-    backgroundColor: Colors.white,
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 14,
-    fontFamily: 'Manrope_400Regular',
-    borderWidth: 1,
-    borderColor: Colors.grayLight,
-    color: Colors.grayDark,
   },
   keywordButton: {
     backgroundColor: Colors.white,
@@ -417,74 +302,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: Colors.grayDark,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    position: 'absolute',
-    bottom: 0,
-    backgroundColor: Colors.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 20,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    width: '100%',
-    height: '70%',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontFamily: 'Manrope_600SemiBold',
-    color: Colors.grayDark,
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  modalOption: {
-    paddingVertical: 15,
-    paddingHorizontal: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.grayLight,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  modalOptionSelected: {
-    backgroundColor: Colors.backgroundLight,
-  },
-  modalOptionText: {
-    fontSize: 14,
-    fontFamily: 'Manrope_400Regular',
-    color: Colors.grayDark,
-  },
-  modalOptionTextSelected: {
-    fontFamily: 'Manrope_600SemiBold',
-    color: Colors.primary,
-  },
-  checkmark: {
-    fontSize: 18,
-    color: Colors.primary,
-    fontFamily: 'Manrope_600SemiBold',
-  },
-  modalCloseButton: {
-    paddingVertical: 12,
-    backgroundColor: Colors.buttonPrimary,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  modalCloseButtonText: {
-    fontSize: 14,
-    fontFamily: 'Manrope_600SemiBold',
-    color: Colors.grayDark,
-  },
-  placeholderText: {
-    fontSize: 14,
-    fontFamily: 'Manrope_400Regular',
-    color: Colors.gray,
-    textAlign: 'center',
-    paddingVertical: 20,
-  },
   footer: {
     paddingHorizontal: 25,
     paddingVertical: 20,
@@ -498,7 +315,6 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     backgroundColor: '#ccc',
-    opacity: 0.6,
   },
   buttonText: {
     fontSize: 14,

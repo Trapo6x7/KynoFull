@@ -13,6 +13,7 @@ import {
   Image,
   Modal,
   StatusBar,
+  Alert,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,22 +21,12 @@ import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/src/constants/colors';
 import { useServices } from '@/src/context/ServicesContext';
 import { useAuth } from '@/src/context/AuthContext';
-import { API_CONFIG } from '@/src/config/api';
+import { MessageBubble } from '@/src/components/chat/MessageBubble';
 import type { Message } from '@/src/services/interfaces/IChatService';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const STATUS_H = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0;
-
-function formatTime(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-}
-
-function getInitials(name?: string | null): string {
-  if (!name) return '?';
-  return name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2);
-}
 
 // ─── ChatScreen ───────────────────────────────────────────────────────────────
 
@@ -120,55 +111,17 @@ export default function ChatScreen() {
   }
 
   // ── Render bubble ─────────────────────────────────────────────────────────
-  const renderMessage = useCallback(({ item }: { item: Message }) => {
-    // sender peut être un objet { id, name, ... } ou une IRI string "/api/users/5"
-    const senderId: number | undefined =
-      typeof item.sender === 'object' && item.sender !== null
-        ? (item.sender as any).id
-        : typeof item.sender === 'string'
-          ? parseInt((item.sender as string).split('/').pop() ?? '', 10)
-          : undefined;
-    const isMe = senderId === myId;
-
-    const avatarEl = isMe ? (
-      user?.images?.[0] ? (
-        <Image source={{ uri: `${API_CONFIG.BASE_URL}/uploads/images/${user.images[0]}` }} style={styles.msgAvatar} />
-      ) : (
-        <View style={[styles.msgAvatar, styles.msgAvatarFallback]}>
-          <Text style={styles.msgAvatarText}>{getInitials(user?.name)}</Text>
-        </View>
-      )
-    ) : (
-      otherImage ? (
-        <Image source={{ uri: otherImage }} style={styles.msgAvatar} />
-      ) : isGroup ? (
-        <View style={[styles.msgAvatar, styles.msgAvatarGroup]}>
-          <Ionicons name="people" size={14} color={Colors.primaryDark} />
-        </View>
-      ) : (
-        <View style={[styles.msgAvatar, styles.msgAvatarFallback]}>
-          <Text style={styles.msgAvatarText}>{getInitials(otherName)}</Text>
-        </View>
-      )
-    );
-
-    return (
-      <View style={[styles.msgRow, isMe ? styles.msgRowMe : styles.msgRowThem]}>
-        {!isMe && <View style={styles.msgAvatarSlot}>{avatarEl}</View>}
-        <View style={styles.msgBubbleCol}>
-          <View style={[styles.bubble, isMe ? styles.bubbleMe : styles.bubbleThem]}>
-            <Text style={[styles.bubbleText, isMe ? styles.bubbleTextMe : styles.bubbleTextThem]}>
-              {item.content}
-            </Text>
-          </View>
-          <Text style={[styles.msgTime, isMe ? styles.msgTimeMe : styles.msgTimeThem]}>
-            {formatTime(item.createdAt)}{isMe ? (item.isRead ? ' ✓✓' : ' ✓') : ''}
-          </Text>
-        </View>
-        {isMe && <View style={styles.msgAvatarSlot}>{avatarEl}</View>}
-      </View>
-    );
-  }, [myId, user, otherName, otherImage, isGroup]);
+  const renderMessage = useCallback(({ item }: { item: Message }) => (
+    <MessageBubble
+      item={item}
+      myId={myId}
+      myImagePath={user?.images?.[0] ?? null}
+      myName={user?.name}
+      otherImage={otherImage}
+      otherName={otherName}
+      isGroup={isGroup}
+    />
+  ), [myId, user, otherName, otherImage, isGroup]);
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
@@ -277,7 +230,10 @@ export default function ChatScreen() {
             <TouchableOpacity
               style={styles.menuItem}
               activeOpacity={0.7}
-              onPress={() => setMenuVisible(false)}
+              onPress={() => {
+                setMenuVisible(false);
+                Alert.alert('Signaler', 'Fonctionnalité bientôt disponible.');
+              }}
             >
               <View style={styles.menuIconCircle}>
                 <Ionicons name="flag-outline" size={18} color={Colors.primaryDark} />
@@ -290,7 +246,10 @@ export default function ChatScreen() {
             <TouchableOpacity
               style={styles.menuItem}
               activeOpacity={0.7}
-              onPress={() => setMenuVisible(false)}
+              onPress={() => {
+                setMenuVisible(false);
+                Alert.alert('Bloquer', 'Fonctionnalité bientôt disponible.');
+              }}
             >
               <View style={styles.menuIconCircle}>
                 <Ionicons name="ban-outline" size={18} color={Colors.primaryDark} />
@@ -303,7 +262,10 @@ export default function ChatScreen() {
             <TouchableOpacity
               style={styles.menuItem}
               activeOpacity={0.7}
-              onPress={() => setMenuVisible(false)}
+              onPress={() => {
+                setMenuVisible(false);
+                Alert.alert('Suppression', 'Fonctionnalité bientôt disponible.');
+              }}
             >
               <View style={[styles.menuIconCircle, styles.menuIconDanger]}>
                 <Ionicons name="trash-outline" size={18} color={Colors.primaryDark} />
@@ -390,67 +352,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyText: { fontSize: 15, color: Colors.gray },
-
-  // ── Message row ───────────────────────
-  msgRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 8,
-  },
-  msgRowMe:   { justifyContent: 'flex-end' },
-  msgRowThem: { justifyContent: 'flex-start' },
-
-  msgAvatarSlot: { width: 32 },
-  msgAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-  },
-  msgAvatarFallback: {
-    backgroundColor: Colors.buttonPrimary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  msgAvatarGroup: {
-    backgroundColor: Colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.primary,
-  },
-  msgAvatarText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.primaryDark,
-  },
-  msgBubbleCol: {
-    maxWidth: '72%',
-    gap: 3,
-  },
-
-  // ── Bubbles ──────────────────────────
-  bubble: {
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  bubbleMe: {
-    backgroundColor: Colors.primary,
-    color: Colors.black,
-    borderBottomRightRadius: 4,
-  },
-  bubbleThem: {
-    backgroundColor: '#fff',
-    color: Colors.grayDark,
-    borderBottomLeftRadius: 4,
-  },
-  bubbleText:     { fontSize: 14, lineHeight: 20 },
-  bubbleTextMe:   { color: '#fff' },
-  bubbleTextThem: { color: '#1a1a1a' },
-
-  msgTime:     { fontSize: 10, color: Colors.gray },
-  msgTimeMe:   { textAlign: 'right' },
-  msgTimeThem: { textAlign: 'left' },
 
   // ── Input bar ────────────────────────
   inputBar: {

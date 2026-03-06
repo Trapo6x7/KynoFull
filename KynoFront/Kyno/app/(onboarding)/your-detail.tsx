@@ -6,8 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Dimensions,
-  Modal,
 } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -15,8 +13,7 @@ import { useFonts, Manrope_400Regular, Manrope_500Medium, Manrope_600SemiBold } 
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/src/constants/colors';
 import userService from '@/src/services/userService';
-
-const { width } = Dimensions.get('window');
+import { OptionPickerModal } from '@/src/components/onboarding/OptionPickerModal';
 
 const GENRE_OPTIONS = [
   { label: 'Homme', value: 'homme' },
@@ -44,18 +41,10 @@ export default function YourDetailScreen() {
   }, []);
 
   const loadProfessions = async () => {
-    console.log('=== LOAD PROFESSIONS ===');
     try {
-      console.log('Calling userService.getProfessions()');
       const data = await userService.getProfessions();
-      console.log('Professions loaded:', data);
       setProfessions(data);
-    } catch (error) {
-      console.warn('=== ERROR LOADING PROFESSIONS ===');
-      console.warn('Error:', error);
-      if (error instanceof Error) {
-        console.warn('Error message:', error.message);
-      }
+    } catch {
       setProfessions([]);
     }
   };
@@ -179,43 +168,14 @@ export default function YourDetailScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Modal Genre Picker */}
-      <Modal
+      <OptionPickerModal
         visible={showGenrePicker}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowGenrePicker(false)}
-      >
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          activeOpacity={1} 
-          onPress={() => setShowGenrePicker(false)}
-        >
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Sélectionnez un genre</Text>
-            {GENRE_OPTIONS.map((option) => (
-              <TouchableOpacity
-                key={option.value}
-                style={[
-                  styles.modalOption,
-                  genre === option.value && styles.modalOptionSelected
-                ]}
-                onPress={() => {
-                  setGenre(option.value);
-                  setShowGenrePicker(false);
-                }}
-              >
-                <Text style={[
-                  styles.modalOptionText,
-                  genre === option.value && styles.modalOptionTextSelected
-                ]}>
-                  {option.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        title="Sélectionnez un genre"
+        options={GENRE_OPTIONS}
+        selectedValue={genre}
+        onSelect={setGenre}
+        onClose={() => setShowGenrePicker(false)}
+      />
     </View>
   );
 }
@@ -318,43 +278,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Manrope_600SemiBold',
     color: Colors.grayDark,
     letterSpacing: 1,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: Colors.white,
-    borderRadius: 15,
-    width: width * 0.8,
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontFamily: 'Manrope_600SemiBold',
-    color: Colors.grayDark,
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  modalOption: {
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    marginBottom: 8,
-  },
-  modalOptionSelected: {
-    backgroundColor: Colors.buttonPrimary,
-  },
-  modalOptionText: {
-    fontSize: 14,
-    fontFamily: 'Manrope_500Medium',
-    color: Colors.grayDark,
-    textAlign: 'center',
-  },
-  modalOptionTextSelected: {
-    fontFamily: 'Manrope_600SemiBold',
   },
   suggestionsContainer: {
     backgroundColor: Colors.white,

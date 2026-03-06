@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,6 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
-  Animated,
-  Modal,
   Platform,
   StatusBar,
 } from 'react-native';
@@ -21,6 +19,7 @@ import { useAuth } from '@/src/context/AuthContext';
 import { useServices } from '@/src/context/ServicesContext';
 import Colors from '@/src/constants/colors';
 import keywordService, { Keyword } from '@/src/services/keywordService';
+import { KeywordPickerModal } from '@/src/components/onboarding/KeywordPickerModal';
 
 export default function EditProfileScreen() {
   const { user, refreshUser } = useAuth();
@@ -36,19 +35,9 @@ export default function EditProfileScreen() {
   const [showKeywordPicker, setShowKeywordPicker] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const slideAnim = useRef(new Animated.Value(0)).current;
-
   useEffect(() => {
     keywordService.getKeywordsByCategory('user').then(setAvailableKeywords).catch(() => {});
   }, []);
-
-  useEffect(() => {
-    if (showKeywordPicker) {
-      Animated.spring(slideAnim, { toValue: 1, useNativeDriver: true, tension: 50, friction: 8 }).start();
-    } else {
-      Animated.timing(slideAnim, { toValue: 0, duration: 250, useNativeDriver: true }).start();
-    }
-  }, [showKeywordPicker]);
 
   const toggleKeyword = (name: string) => {
     setSelectedKeywords((prev) =>
@@ -74,17 +63,6 @@ export default function EditProfileScreen() {
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const slideStyle = {
-    transform: [
-      {
-        translateY: slideAnim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [600, 0],
-        }),
-      },
-    ],
   };
 
   return (
@@ -165,7 +143,7 @@ export default function EditProfileScreen() {
                   activeOpacity={0.7}
                 >
                   <Text style={styles.tagText}>{kw}</Text>
-                  <Ionicons name="close" size={14} color={Colors.primaryDark} />
+                  <Ionicons name="close" size={14} color={Colors.white} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -185,42 +163,15 @@ export default function EditProfileScreen() {
       </View>
 
       {/* Keyword picker modal */}
-      <Modal visible={showKeywordPicker} transparent animationType="none" onRequestClose={() => setShowKeywordPicker(false)}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowKeywordPicker(false)}>
-          <Animated.View style={[styles.pickerSheet, slideStyle]}>
-            <TouchableOpacity activeOpacity={1}>
-              <View style={styles.pickerHeader}>
-                <Text style={styles.pickerTitle}>Choisir des mots-clés</Text>
-                <TouchableOpacity onPress={() => setShowKeywordPicker(false)}>
-                  <Ionicons name="close" size={22} color={Colors.grayDark} />
-                </TouchableOpacity>
-              </View>
-              <ScrollView style={styles.pickerScroll} showsVerticalScrollIndicator={false}>
-                <View style={styles.keywordsGrid}>
-                  {availableKeywords.map((kw) => {
-                    const selected = selectedKeywords.includes(kw.name);
-                    return (
-                      <TouchableOpacity
-                        key={kw.id}
-                        style={[styles.kwChip, selected && styles.kwChipSelected]}
-                        onPress={() => toggleKeyword(kw.name)}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={[styles.kwChipText, selected && styles.kwChipTextSelected]}>
-                          {kw.name}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </ScrollView>
-              <TouchableOpacity style={styles.pickerDoneBtn} onPress={() => setShowKeywordPicker(false)} activeOpacity={0.8}>
-                <Text style={styles.pickerDoneBtnText}>Valider</Text>
-              </TouchableOpacity>
-            </TouchableOpacity>
-          </Animated.View>
-        </TouchableOpacity>
-      </Modal>
+      <KeywordPickerModal
+        visible={showKeywordPicker}
+        title="Choisir des mots-clés"
+        keywords={availableKeywords}
+        selectedKeywords={selectedKeywords}
+        loadingKeywords={false}
+        onToggle={toggleKeyword}
+        onClose={() => setShowKeywordPicker(false)}
+      />
     </SettingsLayout>
   );
 }
@@ -233,13 +184,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   saveBtn: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.primaryLight,
     borderRadius: 30,
     paddingVertical: 16,
     alignItems: 'center',
   },
   saveBtnText: {
-    color: Colors.white,
+    color: Colors.grayDark,
     fontWeight: '700',
     fontSize: 15,
     letterSpacing: 1,
@@ -257,7 +208,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   input: {
-    backgroundColor: Colors.grayLight,
+    backgroundColor: Colors.white,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -279,7 +230,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.grayLight,
+    backgroundColor: Colors.white,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -305,68 +256,7 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontSize: 13,
-    color: Colors.primaryDark,
-    fontWeight: '600',
-  },
-
-  /* Modal */
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
-  },
-  pickerSheet: {
-    backgroundColor: Colors.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: '75%',
-  },
-  pickerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  pickerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.black ?? '#222',
-  },
-  pickerScroll: { maxHeight: 340 },
-  keywordsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    paddingBottom: 16,
-  },
-  kwChip: {
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: Colors.grayLight,
-  },
-  kwChipSelected: {
-    backgroundColor: Colors.buttonPrimary,
-  },
-  kwChipText: {
-    fontSize: 14,
-    color: Colors.grayDark ?? '#555',
-  },
-  kwChipTextSelected: {
-    color: Colors.primaryDark,
-    fontWeight: '600',
-  },
-  pickerDoneBtn: {
-    backgroundColor: Colors.primary,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  pickerDoneBtnText: {
     color: Colors.white,
-    fontWeight: '700',
-    fontSize: 16,
+    fontWeight: '600',
   },
 });

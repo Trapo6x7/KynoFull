@@ -97,7 +97,7 @@ export default function LocationScreen() {
             <ActivityIndicator color={Colors.white} size="small" />
           ) : (
             <>
-              <Ionicons name="navigate" size={20} color={Colors.white} style={{ marginRight: 8 }} />
+              <Ionicons name="navigate" size={20} color={Colors.grayDark} style={{ marginRight: 8 }} />
               <Text style={styles.gpsButtonText}>Utiliser ma position actuelle</Text>
             </>
           )}
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
   },
   gpsButton: {
     flexDirection: 'row',
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.primaryLight,
     borderRadius: 30,
     paddingVertical: 14,
     alignItems: 'center',
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   gpsButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: Colors.white,
+    color: Colors.grayDark,
   },
   dividerRow: {
     flexDirection: 'row',
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   saveButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.primaryLight,
     borderRadius: 30,
     paddingVertical: 16,
     alignItems: 'center',
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: Colors.white,
+    color: Colors.grayDark,
     letterSpacing: 1,
   },
 });

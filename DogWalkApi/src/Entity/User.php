@@ -231,6 +231,37 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Comment
     #[Groups(['me:read', 'user:patch'])]
     private bool $privateMode = false;
 
+    // ─── Filtres de match ──────────────────────────────────────────────────────
+
+    #[ORM\Column(length: 50, nullable: true)]
+    #[Groups(['me:read', 'user:patch'])]
+    private ?string $filterGender = null;
+
+    #[ORM\Column(type: Types::SMALLINT, nullable: true, options: ['default' => 50])]
+    #[Groups(['me:read', 'user:patch'])]
+    private ?int $filterDistanceKm = 50;
+
+    #[ORM\Column(type: Types::SMALLINT, nullable: true, options: ['default' => 18])]
+    #[Groups(['me:read', 'user:patch'])]
+    private ?int $filterAgeMin = 18;
+
+    #[ORM\Column(type: Types::SMALLINT, nullable: true, options: ['default' => 80])]
+    #[Groups(['me:read', 'user:patch'])]
+    private ?int $filterAgeMax = 80;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    #[Groups(['me:read', 'user:patch'])]
+    private ?string $filterDogGender = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    #[Groups(['me:read', 'user:patch'])]
+    private ?string $filterDogSize = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'filter_race_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    #[Groups(['me:read', 'user:patch'])]
+    private ?Race $filterRace = null;
+
     /**
      * @var Collection<int, Keywordable>
      * Les associations de keywords pour cet utilisateur (via table polymorphique)
@@ -685,4 +716,27 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Comment
     {
         return 'user';
     }
+
+    // ─── Getters/Setters filtres de match ──────────────────────────────────────
+
+    public function getFilterGender(): ?string { return $this->filterGender; }
+    public function setFilterGender(?string $filterGender): static { $this->filterGender = $filterGender; return $this; }
+
+    public function getFilterDistanceKm(): ?int { return $this->filterDistanceKm; }
+    public function setFilterDistanceKm(?int $filterDistanceKm): static { $this->filterDistanceKm = $filterDistanceKm; return $this; }
+
+    public function getFilterAgeMin(): ?int { return $this->filterAgeMin; }
+    public function setFilterAgeMin(?int $filterAgeMin): static { $this->filterAgeMin = $filterAgeMin; return $this; }
+
+    public function getFilterAgeMax(): ?int { return $this->filterAgeMax; }
+    public function setFilterAgeMax(?int $filterAgeMax): static { $this->filterAgeMax = $filterAgeMax; return $this; }
+
+    public function getFilterDogGender(): ?string { return $this->filterDogGender; }
+    public function setFilterDogGender(?string $filterDogGender): static { $this->filterDogGender = $filterDogGender; return $this; }
+
+    public function getFilterDogSize(): ?string { return $this->filterDogSize; }
+    public function setFilterDogSize(?string $filterDogSize): static { $this->filterDogSize = $filterDogSize; return $this; }
+
+    public function getFilterRace(): ?Race { return $this->filterRace; }
+    public function setFilterRace(?Race $filterRace): static { $this->filterRace = $filterRace; return $this; }
 }

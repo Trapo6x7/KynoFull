@@ -14,14 +14,15 @@ import Colors from "@/src/constants/colors";
 import { useFocusEffect } from "@react-navigation/native";
 import * as NavigationBar from "expo-navigation-bar";
 import { router, useLocalSearchParams } from "expo-router";
-import BottomNav from "@/components/BottomNav";
+import BottomNav from "@/src/components/BottomNav";
 import TabScreenLayout from "@/src/components/TabScreenLayout";
-import { MatchCard } from "@/components/MatchCard";
-import { SwipeActions } from "@/components/SwipeActions";
+import { MatchCard } from "@/src/components/MatchCard";
+import { SwipeActions } from "@/src/components/SwipeActions";
+import { MatchModal } from "@/src/components/explore/MatchModal";
 import { useAuth } from "@/src/context/AuthContext";
 import { useServices } from "@/src/context/ServicesContext";
-import { useMatches, MatchViewModel } from "@/hooks/useMatches";
-import { useSwipe } from "@/hooks/useSwipe";
+import { useMatches, MatchViewModel } from "@/src/hooks/useMatches";
+import { useSwipe } from "@/src/hooks/useSwipe";
 import { API_CONFIG } from "@/src/config/api";
 
 const { width } = Dimensions.get("window");
@@ -139,7 +140,7 @@ export default function ExploreScreen() {
     React.useCallback(() => {
       if (Platform.OS === "android") NavigationBar.setVisibilityAsync("hidden");
       if (hasLoaded.current) {
-        loadMatches(true); // refresh silencieux, sans animation radar
+        loadMatches(); // recharge avec animation radar
       }
       return () => { if (Platform.OS === "android") NavigationBar.setVisibilityAsync("visible"); };
     }, [loadMatches]),
@@ -264,70 +265,44 @@ export default function ExploreScreen() {
       </TabScreenLayout>
 
       {/* Modal match */}
-      {showMatchModal && matchedUser && (
-        <View style={styles.matchModalOverlay}>
-          <Animated.View style={[styles.matchModal, { transform: [{ scale: matchScale }] }]}>
-            <Text style={styles.matchTitle}>C'est un match !</Text>
-            <View style={styles.matchImagesContainer}>
-              <Image
-                source={{
-                  uri: user?.images?.[0]
-                    ? `${API_CONFIG.BASE_URL}/uploads/images/${user.images[0]}`
-                    : user?.image
-                    ? `${API_CONFIG.BASE_URL}/uploads/images/${user.image}`
-                    : "https://via.placeholder.com/150",
-                }}
-                style={styles.matchImage}
-              />
-              <Animated.View style={{ transform: [{ scale: heartPulse }] }}>
-                <Ionicons name="heart" size={40} color={Colors.primary} style={styles.matchHeart} />
-              </Animated.View>
-              <Image source={{ uri: matchedUser.mainImage }} style={styles.matchImage} />
-            </View>
-            <Text style={styles.matchText}>
-              Vous et {matchedUser.name} vous êtes dans la même meute !
-            </Text>
-            <TouchableOpacity
-              style={styles.matchButtonMsg}
-              onPress={() => {
-                if (!matchConversationId || !matchedUser) return;
-                heartPulse.stopAnimation();
-                heartPulse.setValue(1);
-                matchScale.setValue(0);
-                setShowMatchModal(false);
-                const name = matchedUser.name;
-                const img  = matchedUser.mainImage;
-                const cid  = matchConversationId;
-                setMatchedUser(null);
-                setMatchConversationId(null);
-                router.push({
-                  pathname: '/chat',
-                  params: { conversationId: cid, otherName: name, otherImage: img, isGroup: '0' },
-                } as any);
-              }}
-              disabled={!matchConversationId}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="chatbubble-ellipses-outline" size={18} color="#fff" style={{ marginRight: 6 }} />
-              <Text style={styles.matchButtonMsgText}>Envoyer un message</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.matchButton}
-              onPress={() => {
-                heartPulse.stopAnimation();
-                heartPulse.setValue(1);
-                matchScale.setValue(0);
-                setShowMatchModal(false);
-                setMatchedUser(null);
-                setMatchConversationId(null);
-              }}
-            >
-              <Text style={styles.matchButtonText}>Continuer</Text>
-            </TouchableOpacity>
-          </Animated.View>
-        </View>
-      )}
+      <MatchModal
+        visible={showMatchModal}
+        matchedUser={matchedUser}
+        matchConversationId={matchConversationId}
+        currentUserImageUri={
+          user?.images?.[0]
+            ? `${API_CONFIG.BASE_URL}/uploads/images/${user.images[0]}`
+            : user?.image
+            ? `${API_CONFIG.BASE_URL}/uploads/images/${user.image}`
+            : null
+        }
+        matchScale={matchScale}
+        heartPulse={heartPulse}
+        onClose={() => {
+          heartPulse.stopAnimation();
+          heartPulse.setValue(1);
+          matchScale.setValue(0);
+          setShowMatchModal(false);
+          setMatchedUser(null);
+          setMatchConversationId(null);
+        }}
+        onSendMessage={() => {
+          if (!matchConversationId || !matchedUser) return;
+          heartPulse.stopAnimation();
+          heartPulse.setValue(1);
+          matchScale.setValue(0);
+          setShowMatchModal(false);
+          const name = matchedUser.name;
+          const img  = matchedUser.mainImage;
+          const cid  = matchConversationId;
+          setMatchedUser(null);
+          setMatchConversationId(null);
+          router.push({
+            pathname: '/chat',
+            params: { conversationId: cid, otherName: name, otherImage: img, isGroup: '0' },
+          } as any);
+        }}
+      />
     </View>
   );
 }
@@ -354,14 +329,4 @@ const styles = StyleSheet.create({
   profileDistance: { fontSize: 14, color: Colors.gray },
   cardMainImage: { width: "100%", height: 330 },
   matchModalOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.8)", justifyContent: "center", alignItems: "center", zIndex: 1000 },
-  matchModal: { backgroundColor: Colors.white, borderRadius: 30, padding: 40, alignItems: "center", width: width * 0.85, borderWidth: 2, borderColor: Colors.primary },
-  matchTitle: { fontSize: 28, fontWeight: "700", color: Colors.grayDark, marginBottom: 30 },
-  matchImagesContainer: { flexDirection: "row", alignItems: "center", gap: 2, marginBottom: 30 },
-  matchImage: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: Colors.primary },
-  matchHeart: { marginHorizontal: 10 },
-  matchText: { fontSize: 16, color: Colors.gray, textAlign: "center", marginBottom: 30 },
-  matchButtonMsg: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: Colors.primaryDark, paddingVertical: 14, paddingHorizontal: 32, borderRadius: 25, marginBottom: 12, minWidth: 220 },
-  matchButtonMsgText: { color: "#fff", fontSize: 15, fontWeight: "600" },
-  matchButton: { backgroundColor: Colors.buttonPrimary, paddingVertical: 14, paddingHorizontal: 50, borderRadius: 25, minWidth: 220, alignItems: "center" },
-  matchButtonText: { color: Colors.grayDark, fontSize: 16, fontWeight: "600" },
 });
