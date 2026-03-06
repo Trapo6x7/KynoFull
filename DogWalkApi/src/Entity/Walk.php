@@ -13,6 +13,7 @@ use App\Repository\WalkRepository;
 use App\Contract\CommentableInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: WalkRepository::class)]
 #[ApiResource(
@@ -61,14 +62,30 @@ class Walk implements CommentableInterface
     #[Groups(['walk:read', 'walk:write', 'walk:patch'])]
     private ?string $location = null;
 
-    #[ORM\Column]
+    #[ORM\Column(nullable: true)]
     #[Groups(['walk:read', 'walk:write', 'walk:patch'])]
     private ?\DateTimeImmutable $startAt = null;
 
     #[ORM\ManyToOne(inversedBy: 'walks')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
     #[Groups(['walk:read', 'walk:write', 'walk:patch', 'me:read'])]
     private ?Group $walkGroup = null;
+
+    /** OSM element ID — used to link a Walk record to a map spot. */
+    #[ORM\Column(nullable: true)]
+    #[Groups(['walk:read', 'walk:write'])]
+    private ?int $osmId = null;
+
+    /** User rating for the linked OSM spot (1-5). */
+    #[ORM\Column(nullable: true)]
+    #[Assert\Range(min: 1, max: 5)]
+    #[Groups(['walk:read', 'walk:write'])]
+    private ?int $rating = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true)]
+    #[Groups(['walk:read'])]
+    private ?User $user = null;
 
     public function getId(): ?int
     {
@@ -119,6 +136,42 @@ class Walk implements CommentableInterface
     public function setWalkGroup(?Group $walkGroup): static
     {
         $this->walkGroup = $walkGroup;
+
+        return $this;
+    }
+
+    public function getOsmId(): ?int
+    {
+        return $this->osmId;
+    }
+
+    public function setOsmId(?int $osmId): static
+    {
+        $this->osmId = $osmId;
+
+        return $this;
+    }
+
+    public function getRating(): ?int
+    {
+        return $this->rating;
+    }
+
+    public function setRating(?int $rating): static
+    {
+        $this->rating = $rating;
+
+        return $this;
+    }
+
+    public function getUser(): ?User
+    {
+        return $this->user;
+    }
+
+    public function setUser(?User $user): static
+    {
+        $this->user = $user;
 
         return $this;
     }

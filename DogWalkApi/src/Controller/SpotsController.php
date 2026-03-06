@@ -2,11 +2,15 @@
 
 namespace App\Controller;
 
+use App\Entity\Walk;
+use App\Repository\WalkRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
@@ -24,8 +28,10 @@ class SpotsController extends AbstractController
     ];
 
     public function __construct(
-        private readonly CacheInterface      $cache,
-        private readonly HttpClientInterface $http,
+        private readonly CacheInterface         $cache,
+        private readonly HttpClientInterface    $http,
+        private readonly EntityManagerInterface $em,
+        private readonly WalkRepository         $walkRepository,
     ) {}
 
     #[Route('/api/spots', name: 'spots_near', methods: ['GET'])]
@@ -49,6 +55,92 @@ class SpotsController extends AbstractController
         });
 
         return $this->json($spots);
+    }
+
+    // ── User spot ratings ─────────────────────────────────────────────────────
+
+    /** Returns all OSM spot ratings saved by the authenticated user. */
+    #[Route('/api/spots/ratings', name: 'spots_my_ratings', methods: ['GET'])]
+    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    public function myRatings(): JsonResponse
+    {
+        $user  = $this->getUser();
+        $walks = $this->walkRepository->findBy(['user' => $user]);
+
+        $map = [];
+        foreach ($walks as $walk) {
+            if ($walk->getOsmId() !== null && $walk->getRating() !== null) {
+                $map[(string) $walk->getOsmId()] = $walk->getRating();
+            }
+        }
+
+        return $this->json($map);
+    }
+
+    /** Creates or updates the authenticated user's rating for an OSM spot. */
+    #[Route('/api/spots/rate', name: 'spots_rate', methods: ['POST'])]
+    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    public function rate(Request $request): JsonResponse
+    {
+        $body   = json_decode((string) $request->getContent(), true) ?? [];
+        $osmId  = isset($body['osmId'])  ? (int) $body['osmId']  : null;
+        $rating = isset($body['rating']) ? (int) $body['rating'] : null;
+
+        if ($osmId === null || $rating === null) {
+            throw new BadRequestHttpException('osmId et rating sont requis.');
+        }
+        if ($rating < 1 || $rating > 5) {
+            throw new BadRequestHttpException('rating doit être entre 1 et 5.');
+        }
+
+        $user = $this->getUser();
+
+        // Reuse existing Walk record for this user+osmId if it exists.
+        $walk = $this->walkRepository->findOneBy(['user' => $user, 'osmId' => $osmId]);
+
+        if ($walk === null) {
+            $walk = new Walk();
+            /** @var \App\Entity\User $user */
+            $walk->setUser($user);
+            $walk->setOsmId($osmId);
+            $walk->setName('spot');
+            $walk->setLocation('');
+            $this->em->persist($walk);
+        }
+
+        $walk->setRating($rating);
+        $this->em->flush();
+
+        return $this->json(['osmId' => $osmId, 'rating' => $rating]);
+    }
+
+    /**
+     * Returns the community average rating for a list of OSM spot IDs.
+     * Public endpoint — no authentication required.
+     * Query: GET /api/spots/avg-ratings?osmIds=111,222,333
+     */
+    #[Route('/api/spots/avg-ratings', name: 'spots_avg_ratings', methods: ['GET'])]
+    public function avgRatings(Request $request): JsonResponse
+    {
+        $raw    = $request->query->get('osmIds', '');
+        $osmIds = array_filter(
+            array_map('intval', explode(',', (string) $raw)),
+            fn (int $id): bool => $id > 0,
+        );
+
+        if (empty($osmIds)) {
+            return $this->json((object) []);
+        }
+
+        $map = $this->walkRepository->findAvgRatingsByOsmIds(array_values($osmIds));
+
+        // Return as string keys for JS JSON compatibility
+        $result = [];
+        foreach ($map as $id => $avg) {
+            $result[(string) $id] = $avg;
+        }
+
+        return $this->json($result);
     }
 
     // ── Overpass ──────────────────────────────────────────────────────────────

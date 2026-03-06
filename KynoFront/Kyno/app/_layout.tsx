@@ -10,6 +10,7 @@ import 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider } from '@/src/context/AuthContext';
 import { ServicesProvider } from '@/src/context/ServicesContext';
+import { BadgeProvider } from '@/src/context/BadgeContext';
 
 function AppGradient({ children }: { children: React.ReactNode }) {
   const segments = useSegments();
@@ -43,6 +44,7 @@ export default function RootLayout() {
   return (
     <ServicesProvider>
       <AuthProvider>
+        <BadgeProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <AppGradient>
             <Stack
@@ -63,6 +65,7 @@ export default function RootLayout() {
           </AppGradient>
           <StatusBar style="auto" />
         </ThemeProvider>
+        </BadgeProvider>
       </AuthProvider>
     </ServicesProvider>
   );

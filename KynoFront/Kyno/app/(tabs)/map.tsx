@@ -11,7 +11,7 @@ import {
   Modal,
   Image,
 } from "react-native";
-import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
+import MapView, { Marker, PROVIDER_DEFAULT, type Region } from "react-native-maps";
 import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -20,19 +20,19 @@ import * as NavigationBar from "expo-navigation-bar";
 import Colors from "@/src/constants/colors";
 import BottomNav from "@/components/BottomNav";
 import TabScreenLayout from "@/src/components/TabScreenLayout";
-import apiClient from "@/src/services/api";
+import { useAuth } from "@/src/context/AuthContext";
+import {
+  fetchSpots,
+  getCachedSpots,
+  setCachedSpots,
+  fetchMyRatings,
+  fetchAvgRatings,
+  saveSpotRating,
+  type WalkSpot,
+} from "@/src/services/spotService";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 const STATUS_H = Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : 0;
-
-// ─── Backend spots API ─────────────────────────────────────────────────────────
-async function fetchSpotsFromBackend(
-  lat: number,
-  lon: number,
-): Promise<WalkSpot[]> {
-  const response = await apiClient.get("/api/spots", { params: { lat, lon } });
-  return response.data as WalkSpot[];
-}
 
 const DEFAULT_REGION = {
   latitude: 48.8566,
@@ -43,19 +43,6 @@ const DEFAULT_REGION = {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type SpotCategory = "Tous" | "Parcs" | "Forêts" | "Bords d'eau" | "Aires dogs";
-
-interface WalkSpot {
-  id: number;
-  name: string;
-  address: string;
-  distance: string;
-  distanceRaw: number;
-  category: Exclude<SpotCategory, "Tous">;
-  latitude: number;
-  longitude: number;
-  photoUrl?: string | null;
-  rating?: number | null;
-}
 
 const CATEGORY_META: Record<
   Exclude<SpotCategory, "Tous">,
@@ -75,7 +62,9 @@ function SpotMarker({
   category?: Exclude<SpotCategory, "Tous">;
   size?: number;
 }) {
-  const bgColor = category ? CATEGORY_META[category]?.color ?? Colors.primary : Colors.primary;
+  const bgColor = category
+    ? (CATEGORY_META[category]?.color ?? Colors.primary)
+    : Colors.primary;
   return (
     <View
       collapsable={false}
@@ -84,7 +73,12 @@ function SpotMarker({
       <View
         style={[
           styles.spotMarker,
-          { width: size, height: size, borderRadius: size / 2, backgroundColor: bgColor },
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            backgroundColor: bgColor,
+          },
         ]}
       >
         <MaterialCommunityIcons
@@ -115,10 +109,19 @@ function UserMarker({ size = 38 }: { size?: number }) {
       <View
         style={[
           styles.spotMarker,
-          { width: size, height: size, borderRadius: size / 2, backgroundColor: Colors.primary },
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            backgroundColor: Colors.primary,
+          },
         ]}
       >
-        <MaterialCommunityIcons name="paw" size={size * 0.55} color={Colors.white} />
+        <MaterialCommunityIcons
+          name="paw"
+          size={size * 0.55}
+          color={Colors.white}
+        />
       </View>
     </View>
   );
@@ -129,11 +132,13 @@ function SpotModal({
   spot,
   onClose,
   userRating,
+  avgRating,
   onRate,
 }: {
   spot: WalkSpot | null;
   onClose: () => void;
   userRating: number;
+  avgRating: number;
   onRate: (stars: number) => void;
 }) {
   if (!spot) return null;
@@ -224,8 +229,33 @@ function SpotModal({
               <Text style={styles.infoText}> {spot.distance}</Text>
             </View>
 
-            {/* Étoiles */}
-            <Text style={styles.ratingLabel}>Votre note</Text>
+            {/* Moyenne communauté */}
+            {avgRating > 0 && (
+              <View style={[styles.infoRow, { marginTop: 8, gap: 4 }]}>
+                <MaterialCommunityIcons
+                  name="account-group-outline"
+                  size={14}
+                  color={Colors.gray}
+                />
+                <Text style={[styles.infoText, { color: Colors.gray }]}>
+                  Moyenne communauté :
+                </Text>
+                <MaterialCommunityIcons name="star" size={13} color="#FFC107" />
+                <Text style={[styles.infoText, { fontWeight: "600" }]}>
+                  {avgRating.toFixed(1)}/5
+                </Text>
+              </View>
+            )}
+
+            {/* Étoiles utilisateur */}
+            <Text
+              style={[
+                styles.ratingLabel,
+                { marginTop: avgRating > 0 ? 10 : 0 },
+              ]}
+            >
+              Votre note
+            </Text>
             <View style={{ flexDirection: "row", gap: 6, marginTop: 6 }}>
               {[1, 2, 3, 4, 5].map((star) => (
                 <TouchableOpacity
@@ -234,9 +264,11 @@ function SpotModal({
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                   <MaterialCommunityIcons
-                    name={star <= userRating ? "star-circle" : "star-circle-outline"}
+                    name={star <= userRating ? "star" : "star-outline"}
                     size={30}
-                    color={star <= userRating ? Colors.primary : Colors.grayLight}
+                    color={
+                      star <= userRating ? Colors.primary : Colors.grayLight
+                    }
                   />
                 </TouchableOpacity>
               ))}
@@ -263,10 +295,12 @@ function SpotCard({
   spot,
   onPress,
   userRating,
+  avgRating,
 }: {
   spot: WalkSpot;
   onPress: () => void;
   userRating: number;
+  avgRating: number;
 }) {
   const meta = CATEGORY_META[spot.category];
   return (
@@ -312,13 +346,43 @@ function SpotCard({
           <Ionicons name="navigate-outline" size={13} color={Colors.gray} />
           <Text style={styles.infoText}> {spot.distance}</Text>
         </View>
-        {/* Catégorie + note */}
-        <View style={[styles.infoRow, { marginTop: 4, gap: 6 }]}>
+        {/* Catégorie + notes */}
+        <View style={[styles.infoRow, { marginTop: 4, gap: 5 }]}>
           <Text style={[styles.categoryText, { color: meta.color }]}>
             {spot.category}
           </Text>
+          {avgRating > 0 ? (
+            <>
+              <Text style={{ color: Colors.grayLight }}>·</Text>
+              <MaterialCommunityIcons
+                name="star"
+                size={11}
+                color={Colors.primary}
+              />
+              <Text style={[styles.infoText, { fontWeight: "600" }]}>
+                {avgRating.toFixed(1)}
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={{ color: Colors.grayLight }}>·</Text>
+              <MaterialCommunityIcons
+                name="star"
+                size={11}
+                color={Colors.grayLight}
+              />
+              <Text
+                style={[
+                  styles.infoText,
+                  { fontWeight: "600", color: Colors.grayLight },
+                ]}
+              >
+                Non noté
+              </Text>
+            </>
+          )}
           <Text style={{ color: Colors.grayLight }}>·</Text>
-          {[1, 2, 3, 4, 5].map((s) => (
+          {/* {[1, 2, 3, 4, 5].map((s) => (
             <MaterialCommunityIcons
               key={s}
               name={s <= userRating ? "star-circle" : "star-circle-outline"}
@@ -333,7 +397,7 @@ function SpotCard({
               {" "}
               Non noté
             </Text>
-          )}
+          )} */}
         </View>
       </View>
     </TouchableOpacity>
@@ -342,7 +406,10 @@ function SpotCard({
 
 // ─── MapScreen ───────────────────────────────────────────────────────────────
 export default function MapScreen() {
+  const { user } = useAuth();
   const [region, setRegion] = useState(DEFAULT_REGION);
+  const [fullscreenRegion, setFullscreenRegion] = useState<Region>(DEFAULT_REGION);
+  const mapRef = React.useRef<MapView>(null);
   const [locationReady, setLocationReady] = useState(false);
   const [locationLoading, setLocationLoading] = useState(true);
   const [fullscreen, setFullscreen] = useState(false);
@@ -352,6 +419,7 @@ export default function MapScreen() {
   const [spotsError, setSpotsError] = useState(false);
   const [selectedSpot, setSelectedSpot] = useState<WalkSpot | null>(null);
   const [ratings, setRatings] = useState<Record<number, number>>({});
+  const [avgRatings, setAvgRatings] = useState<Record<number, number>>({});
 
   useEffect(() => {
     if (Platform.OS === "android") {
@@ -359,42 +427,46 @@ export default function MapScreen() {
     }
   }, []);
 
-  // 1) Obtenir la position
+  // Load persisted ratings whenever the authenticated user changes
   useEffect(() => {
-    (async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === "granted") {
-          const loc = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
-          });
-          setRegion({
-            latitude: loc.coords.latitude,
-            longitude: loc.coords.longitude,
-            latitudeDelta: 0.04,
-            longitudeDelta: 0.04,
-          });
+    if (!user) {
+      setRatings({});
+      return;
+    }
+    fetchMyRatings()
+      .then((map) => {
+        const numericMap: Record<number, number> = {};
+        for (const [k, v] of Object.entries(map)) {
+          numericMap[Number(k)] = v;
         }
-      } catch {
-        // Exception inattendue → région par défaut
-      } finally {
-        setLocationReady(true); // toujours déclencher Overpass, même sans GPS
-        setLocationLoading(false);
-      }
-    })();
-  }, []);
+        setRatings(numericMap);
+      })
+      .catch(() => {
+        // Non-blocking — ratings just won't show until retry
+      });
+  }, [user?.id]);
 
-  // 2) Dès que la position est prête, interroger Overpass OSM
+  // ─── loadSpots : cache client AsyncStorage → backend si miss ────────────────
   const loadSpots = useCallback(
     async (lat: number, lon: number, force = false) => {
       setSpotsLoading(true);
       setSpotsError(false);
       try {
-        const data = await fetchSpotsFromBackend(lat, lon);
+        if (!force) {
+          const cached = await getCachedSpots(lat, lon);
+          if (cached) {
+            console.log(`[Spots] ${cached.length} spots depuis le cache`);
+            setSpots(cached);
+            return;
+          }
+        }
+
+        const data = await fetchSpots(lat, lon);
         console.log(`[Spots] ${data.length} spots reçus du backend`);
+        await setCachedSpots(lat, lon, data);
         setSpots(data);
       } catch (e) {
-        console.error("[Spots] Erreur fetchSpotsFromBackend:", e);
+        console.error("[Spots] Erreur fetchSpots:", e);
         setSpotsError(true);
       } finally {
         setSpotsLoading(false);
@@ -403,11 +475,70 @@ export default function MapScreen() {
     [],
   );
 
+  // 1) Obtenir la position, puis charger les spots avec les coordonnées réelles
   useEffect(() => {
-    if (locationReady) {
-      loadSpots(region.latitude, region.longitude);
-    }
-  }, [locationReady]);
+    (async () => {
+      let lat = DEFAULT_REGION.latitude;
+      let lon = DEFAULT_REGION.longitude;
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === "granted") {
+          const loc = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+          lat = loc.coords.latitude;
+          lon = loc.coords.longitude;
+          setRegion({
+            latitude: lat,
+            longitude: lon,
+            latitudeDelta: 0.04,
+            longitudeDelta: 0.04,
+          });
+        }
+      } catch {
+        // Exception inattendue → région par défaut
+      } finally {
+        setLocationReady(true);
+        setLocationLoading(false);
+        // Pass coordinates directly to avoid stale-closure on region state
+        loadSpots(lat, lon);
+      }
+    })();
+  }, [loadSpots]);
+
+  const handleRate = useCallback((osmId: number, stars: number) => {
+    setRatings((r) => ({ ...r, [osmId]: stars }));
+    saveSpotRating(osmId, stars)
+      .then(() => {
+        // Refresh the real avg from backend after saving
+        fetchAvgRatings([osmId])
+          .then((map) => {
+            const v = map[String(osmId)];
+            if (v !== undefined) {
+              setAvgRatings((a) => ({ ...a, [osmId]: v }));
+            }
+          })
+          .catch(() => {});
+      })
+      .catch((e) => console.error("[Spots] Erreur saveSpotRating:", e));
+  }, []);
+
+  // Load community average ratings whenever the spots list changes
+  useEffect(() => {
+    if (spots.length === 0) return;
+    const osmIds = spots.map((s) => s.id);
+    fetchAvgRatings(osmIds)
+      .then((map) => {
+        const numericMap: Record<number, number> = {};
+        for (const [k, v] of Object.entries(map)) {
+          numericMap[Number(k)] = v;
+        }
+        setAvgRatings(numericMap);
+      })
+      .catch(() => {
+        // Non-blocking
+      });
+  }, [spots]);
 
   const filteredSpots = useMemo(
     () =>
@@ -440,10 +571,14 @@ export default function MapScreen() {
         />
 
         <MapView
+          ref={mapRef}
           style={StyleSheet.absoluteFillObject}
-          initialRegion={region}
+          initialRegion={fullscreenRegion}
           provider={PROVIDER_DEFAULT}
           showsMyLocationButton={false}
+          onMapReady={() => {
+            mapRef.current?.animateToRegion(fullscreenRegion, 0);
+          }}
         >
           {markers.map((m) => (
             <Marker
@@ -511,10 +646,8 @@ export default function MapScreen() {
           spot={selectedSpot}
           onClose={() => setSelectedSpot(null)}
           userRating={selectedSpot ? (ratings[selectedSpot.id] ?? 0) : 0}
-          onRate={(stars) =>
-            selectedSpot &&
-            setRatings((r) => ({ ...r, [selectedSpot.id]: stars }))
-          }
+          avgRating={selectedSpot ? (avgRatings[selectedSpot.id] ?? 0) : 0}
+          onRate={(stars) => selectedSpot && handleRate(selectedSpot.id, stars)}
         />
       </View>
     );
@@ -543,7 +676,10 @@ export default function MapScreen() {
         <TouchableOpacity
           style={styles.mapWrapper}
           activeOpacity={0.9}
-          onPress={() => setFullscreen(true)}
+          onPress={() => {
+            setFullscreenRegion(region);
+            setFullscreen(true);
+          }}
         >
           {locationLoading ? (
             <View style={[styles.map, styles.mapPlaceholder]}>
@@ -651,8 +787,15 @@ export default function MapScreen() {
                 key={spot.id}
                 spot={spot}
                 userRating={ratings[spot.id] ?? 0}
+                avgRating={avgRatings[spot.id] ?? 0}
                 onPress={() => {
-                  /* TODO: détail spot + proposition de walk */
+                  setFullscreenRegion({
+                    latitude: spot.latitude,
+                    longitude: spot.longitude,
+                    latitudeDelta: 0.008,
+                    longitudeDelta: 0.008,
+                  });
+                  setFullscreen(true);
                 }}
               />
             ))

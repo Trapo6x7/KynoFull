@@ -101,17 +101,15 @@ function ConversationItem({ conversation, myId, onPress, otherId, otherImage }: 
 
       {/* Contenu */}
       <View style={styles.cardContent}>
-        <View style={styles.cardTopRow}>
-          <Text style={[styles.cardName, { marginRight: 8 }]} numberOfLines={1}>{displayName}</Text>
-          <Text style={styles.cardTime}>{timeAgo(conversation.lastMessageAt)}</Text>
-        </View>
+        <Text style={styles.cardName} numberOfLines={1}>{displayName}</Text>
         <Text style={styles.cardPreview} numberOfLines={2} ellipsizeMode="tail">
           {conversation.lastMessageContent ?? 'Commencer la conversation'}
         </Text>
       </View>
 
-      {/* Badge droite */}
-      <View style={styles.cardBadgeWrapper}>
+      {/* Droite : heure + badge */}
+      <View style={styles.cardRight}>
+        <Text style={styles.cardTime}>{timeAgo(conversation.lastMessageAt)}</Text>
         {!conversation.lastMessageContent ? (
           <View style={styles.newMatchBadge}>
             <Text style={styles.newMatchText}>Nouveau</Text>
@@ -246,7 +244,7 @@ export default function MessagesScreen() {
           {/* ── Messages ── */}
           {activeConvos.length > 0 && (
             <View style={styles.messagesHeader}>
-              <Text style={styles.sectionTitle}>Messages</Text>
+              <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Messages</Text>
               <View style={styles.countPill}>
                 <Text style={styles.countPillText}>{activeConvos.length}</Text>
               </View>
@@ -409,10 +407,12 @@ const styles = StyleSheet.create({
     color: Colors.primaryDark,
   },
 
-  // Badges
-  cardBadgeWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
+  // Droite de la card
+  cardRight: {
+    alignItems: 'flex-end',
+    justifyContent: 'flex-start',
+    gap: 6,
+    paddingTop: 2,
   },
   unreadBadge: {
     backgroundColor: Colors.primary,
@@ -449,13 +449,7 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 3,
   },
-  cardTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
   cardName: {
-    flex: 1,
     fontSize: 15,
     fontWeight: '700',
     color: '#1a1a1a',
@@ -534,10 +528,8 @@ const styles = StyleSheet.create({
   messagesHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    verticalAlign: "middle",
     paddingHorizontal: 8,
-    paddingTop: 14,
-    paddingBottom: 8,
+    paddingVertical: 8,
     gap: 8,
   },
   countPill: {

@@ -9,6 +9,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import Colors from "@/src/constants/colors";
+import { useBadge } from "@/src/context/BadgeContext";
 
 const TAB_ROUTES: Record<string, string> = {
   explore: "/(tabs)/explore",
@@ -53,6 +54,7 @@ export default function BottomNav({
   onSelectTab,
   style,
 }: BottomNavProps) {
+  const { messagesBadge, likesBadge } = useBadge();
   return (
     <View style={[styles.bottomNav, style]}>
       {TABS.map((tab) => (
@@ -64,16 +66,24 @@ export default function BottomNav({
           ]}
           onPress={() => {
             const handled = onSelectTab?.(tab.key);
-            if (handled) return; // navigation custom déjà gérée
+            if (handled) return;
             const route = TAB_ROUTES[tab.key];
             if (route) router.push(route as any);
           }}
         >
-          <Ionicons
-            name={tab.icon}
-            size={tab.size}
-            color={activeTab === tab.key ? Colors.primary : Colors.gray}
-          />
+          <View>
+            <Ionicons
+              name={tab.icon}
+              size={tab.size}
+              color={activeTab === tab.key ? Colors.primary : Colors.gray}
+            />
+            {tab.key === "messages" && messagesBadge && (
+              <View style={styles.badgeDot} />
+            )}
+            {tab.key === "likes" && likesBadge && (
+              <View style={styles.badgeDot} />
+            )}
+          </View>
         </TouchableOpacity>
       ))}
     </View>
@@ -96,4 +106,15 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   navButtonActive: {},
+  badgeDot: {
+    position: 'absolute',
+    top: -2,
+    right: -4,
+    width: 12,
+    height:12,
+    borderRadius: 40,
+    backgroundColor: Colors.primary,
+    borderWidth: 1.5,
+    borderColor: Colors.buttonPrimary,
+  },
 });
