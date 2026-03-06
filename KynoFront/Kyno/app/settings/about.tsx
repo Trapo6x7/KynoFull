@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Linking,
+  Image,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -43,8 +44,16 @@ export default function AboutScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Logo / branding */}
         <View style={styles.logoWrapper}>
-          <Text style={styles.logoEmoji}>🐾</Text>
-          <Text style={styles.appName}>Kyno</Text>
+          <Image
+            source={require('@/assets/images/kynoillustration.png')}
+            style={styles.illustrationImage}
+            resizeMode="contain"
+          />
+          <Image
+            source={require('@/assets/images/kynologo.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
           <Text style={styles.appTagline}>Trouvez des compagnons de promenade</Text>
           <View style={styles.versionBadge}>
             <Text style={styles.versionText}>Version {APP_VERSION}</Text>
@@ -108,15 +117,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 28,
   },
-  logoEmoji: {
-    fontSize: 56,
+  illustrationImage: {
+    width: 180,
+    height: 160,
     marginBottom: 8,
   },
-  appName: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: Colors.primary,
-    letterSpacing: 1,
+  logoImage: {
+    width: 110,
+    height: 40,
+    marginBottom: 6,
   },
   appTagline: {
     fontSize: 13,

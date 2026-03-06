@@ -171,7 +171,7 @@ export default function ExploreScreen() {
       <TabScreenLayout title="Explorer" leftAction={exploreLeft} rightAction={exploreRight}>
         <View style={styles.emptyContainer}>
           <View style={styles.emptyCircle}>
-            <Ionicons name="eye-off" size={48} color={Colors.primary} />
+            <Image source={require("@/assets/images/dogprivate.png")} style={styles.emptyDog} resizeMode="contain" />
           </View>
           <Text style={styles.emptyText}>Mode privé activé</Text>
           <Text style={[styles.emptyText, { fontSize: 14, marginTop: 8, opacity: 0.7 }]}>

@@ -7,6 +7,11 @@ import {
   Share,
   Alert,
   Clipboard,
+  Image,
+  ScrollView,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,14 +19,24 @@ import SettingsLayout from '@/src/components/SettingsLayout';
 import Colors from '@/src/constants/colors';
 import { useAuth } from '@/src/context/AuthContext';
 
-const APP_STORE_LINK = 'https://apps.apple.com/app/kyno';
-const PLAY_STORE_LINK = 'https://play.google.com/store/apps/details?id=com.kyno';
+const INVITE_MESSAGE =
+  `Rejoins-moi sur Kyno 🐾 — l'app pour trouver des compagnons de promenade pour ton chien !
 
-const INVITE_MESSAGE = `Rejoins-moi sur Kyno 🐾 — l'app pour trouver des compagnons de promenade pour ton chien !\n\niOS : ${APP_STORE_LINK}\nAndroid : ${PLAY_STORE_LINK}`;
+Télécharge l'app et retrouve-moi là-bas 🐕`;
 
 export default function InviteFriendsScreen() {
   const { user } = useAuth();
   const [copied, setCopied] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  }
+
+  const togglePreview = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setPreviewOpen((v) => !v);
+  };
 
   const handleShare = async () => {
     try {
@@ -57,22 +72,48 @@ export default function InviteFriendsScreen() {
 
   return (
     <SettingsLayout title="Invitez des amis">
-      <View style={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Illustration */}
         <View style={styles.illustration}>
-          <Text style={styles.illustrationEmoji}>🐾</Text>
+          <Image
+            source={require('@/assets/images/kynoillustration.png')}
+            style={styles.illustrationImage}
+            resizeMode="contain"
+          />
         </View>
+        <Image
+          source={require('@/assets/images/kynologo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
 
-        <Text style={styles.title}>Partagez Kyno</Text>
+        <Text style={styles.title}>Invitez vos amis</Text>
         <Text style={styles.subtitle}>
           Invitez vos amis à rejoindre la communauté et trouvez encore plus de compagnons de promenade !
         </Text>
 
-        {/* Preview message */}
-        <View style={styles.previewCard}>
-          <Text style={styles.previewLabel}>Message d'invitation</Text>
-          <Text style={styles.previewText}>{INVITE_MESSAGE}</Text>
-        </View>
+        {/* Accordion : aperçu du message */}
+        <TouchableOpacity
+          style={styles.accordionHeader}
+          onPress={togglePreview}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.accordionLabel}>Message d'invitation</Text>
+          <Ionicons
+            name={previewOpen ? 'chevron-up' : 'chevron-down'}
+            size={18}
+            color={Colors.primary}
+          />
+        </TouchableOpacity>
+        {previewOpen && (
+          <View style={styles.previewCard}>
+            <Text style={styles.previewText}>{INVITE_MESSAGE}</Text>
+          </View>
+        )}
 
         {/* Share actions */}
         <View style={styles.actionsContainer}>
@@ -95,29 +136,33 @@ export default function InviteFriendsScreen() {
             </TouchableOpacity>
           ))}
         </View>
-      </View>
+      </ScrollView>
     </SettingsLayout>
   );
 }
 
 const styles = StyleSheet.create({
   content: {
-    flex: 1,
     paddingHorizontal: 24,
     paddingTop: 32,
+    paddingBottom: 40,
     alignItems: 'center',
   },
   illustration: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: Colors.backgroundLight,
+    width: 180,
+    height: 160,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 8,
   },
-  illustrationEmoji: {
-    fontSize: 48,
+  illustrationImage: {
+    width: '100%',
+    height: '100%',
+  },
+  logo: {
+    width: 100,
+    height: 36,
+    marginBottom: 20,
   },
   title: {
     fontSize: 22,
@@ -134,6 +179,25 @@ const styles = StyleSheet.create({
     marginBottom: 28,
     paddingHorizontal: 12,
   },
+  accordionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    backgroundColor: Colors.white,
+    borderRadius: 15,
+    padding: 16,
+    marginBottom: 4,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.primary,
+  },
+  accordionLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   previewCard: {
     backgroundColor: Colors.white,
     borderRadius: 15,
@@ -143,14 +207,6 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: Colors.primary,
   },
-  previewLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.primary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 8,
-  },
   previewText: {
     fontSize: 13,
     color: Colors.grayDark,
@@ -159,6 +215,7 @@ const styles = StyleSheet.create({
   actionsContainer: {
     width: '100%',
     gap: 12,
+    paddingTop: 30,
   },
   actionButton: {
     flexDirection: 'row',

@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalSheet: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 20,
@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 10,
     marginBottom: 6,
-    backgroundColor: Colors.backgroundLight,
+    // backgroundColor: Colors.backgroundLight,
   },
   modalOptionSelected: {
     backgroundColor: Colors.primaryLight,
@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
   // Bouton
   applyButton: {
     marginTop: 32,
-    backgroundColor: Colors.buttonPrimary,
+    backgroundColor: Colors.primary,
     borderRadius: 30,
     paddingVertical: 16,
     alignItems: 'center',
@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
   applyButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.primaryDark,
+    color: Colors.white,
     letterSpacing: 1,
   },
 });

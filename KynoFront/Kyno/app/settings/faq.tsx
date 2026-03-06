@@ -84,7 +84,7 @@ export default function FaqScreen() {
         <Ionicons name="search" size={18} color={Colors.primary} style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Enter your keyword"
+          placeholder="Commencer a rechercher..."
           placeholderTextColor={Colors.gray}
           value={search}
           onChangeText={setSearch}

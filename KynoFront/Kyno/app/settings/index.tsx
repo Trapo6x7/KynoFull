@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Image,
   ScrollView,
   Switch,
+  Animated,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +23,25 @@ export default function SettingsScreen() {
   const { user, logout, refreshUser } = useAuth();
   const { authService } = useServices();
   const [privateMode, setPrivateMode] = useState(user?.privateMode ?? false);
+
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const COLLAPSE_AT = 70;
+
+  const sectionHeight = scrollY.interpolate({
+    inputRange: [0, COLLAPSE_AT],
+    outputRange: [190, 74],
+    extrapolate: 'clamp',
+  });
+  const expandedOpacity = scrollY.interpolate({
+    inputRange: [0, COLLAPSE_AT * 0.45],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+  const collapsedOpacity = scrollY.interpolate({
+    inputRange: [COLLAPSE_AT * 0.55, COLLAPSE_AT],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
 
   const displayName = user
     ? (user.firstName || user.lastName)
@@ -54,34 +74,62 @@ export default function SettingsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors.primary} />
+          <Ionicons name="arrow-back" size={24} color={Colors.grayDark} />
         </TouchableOpacity>
       </View>
 
-      {/* Profile Section — always visible */}
-      <View style={styles.profileSection}>
-        <View style={styles.profileImageContainer}>
-          {user?.images?.[0] ? (
-            <Image
-              source={{ uri: toImageUrl(user.images[0]) }}
-              style={styles.profileImage}
-            />
-          ) : (
-            <View style={styles.profileImagePlaceholder}>
-              <Ionicons name="person" size={60} color={Colors.gray} />
-            </View>
-          )}
-        </View>
-        <Text style={styles.profileName}>
-          {displayName || 'Utilisateur'}
-          {userAge !== null && (
-            <Text>, {userAge} ans</Text>
-          )}
-        </Text>
-        <Text style={styles.profileEmail}>{user?.email}</Text>
-      </View>
+      {/* Profile Section — collapsible on scroll */}
+      <Animated.View style={[styles.profileSection, { height: sectionHeight }]}>
+        {/* Expanded: big centered image + name + email */}
+        <Animated.View style={[styles.profileExpanded, { opacity: expandedOpacity }]}>
+          <View style={styles.profileImageContainer}>
+            {user?.images?.[0] ? (
+              <Image source={{ uri: toImageUrl(user.images[0]) }} style={styles.profileImage} />
+            ) : (
+              <View style={styles.profileImagePlaceholder}>
+                <Ionicons name="person" size={60} color={Colors.gray} />
+              </View>
+            )}
+          </View>
+          <Text style={styles.profileName}>
+            {displayName || 'Utilisateur'}
+            {userAge !== null && <Text>, {userAge} ans</Text>}
+          </Text>
+          <Text style={styles.profileEmail}>{user?.email}</Text>
+        </Animated.View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Collapsed: small image left + name/age right */}
+        <Animated.View style={[styles.profileCollapsed, { opacity: collapsedOpacity }]}>
+          <View style={styles.profileImageContainerSmall}>
+            {user?.images?.[0] ? (
+              <Image source={{ uri: toImageUrl(user.images[0]) }} style={styles.profileImage} />
+            ) : (
+              <View style={styles.profileImagePlaceholder}>
+                <Ionicons name="person" size={26} color={Colors.gray} />
+              </View>
+            )}
+          </View>
+          <View style={{ marginLeft: 14 }}>
+            <Text style={styles.profileNameSmall}>
+              {displayName || 'Utilisateur'}
+              {userAge !== null && (
+                <Text style={styles.profileAgeInline}>, {userAge} ans</Text>
+              )}
+            </Text>
+            <Text style={styles.profileEmailSmall}>{user?.email}</Text>
+          </View>
+        </Animated.View>
+      </Animated.View>
+
+      <Animated.ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false },
+        )}
+        scrollEventThrottle={16}
+      >
         {/* Settings Options */}
         <View style={styles.section}>
           <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/settings/match-settings')}>
@@ -165,7 +213,7 @@ export default function SettingsScreen() {
           <Text style={styles.logoutText}>DECONNEXION</Text>
         </TouchableOpacity>
         <View style={{ height: 30 }} />
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -190,10 +238,44 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   profileSection: {
-    alignItems: 'center',
-    paddingTop: 20,
-    paddingBottom: 24,
+    overflow: 'hidden',
     backgroundColor: Colors.backgroundLight,
+  },
+  profileExpanded: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: 12,
+  },
+  profileCollapsed: {
+    ...StyleSheet.absoluteFillObject,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  profileImageContainerSmall: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    overflow: 'hidden',
+    flexShrink: 0,
+  },
+  profileNameSmall: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.grayDark,
+  },
+  profileAgeInline: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: Colors.gray,
+  },
+  profileEmailSmall: {
+    fontSize: 12,
+    color: Colors.gray,
+    marginTop: 2,
   },
   profileImageContainer: {
     width: 120,
