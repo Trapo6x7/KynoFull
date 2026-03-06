@@ -31,10 +31,6 @@ export const API_CONFIG = {
     // Walks
     WALKS: '/api/walks',
     
-    // Groups
-    GROUPS: '/api/groups',
-    GROUP_REQUESTS: '/api/group_requests',
-    
     // Reviews
     REVIEWS: '/api/reviews',
     

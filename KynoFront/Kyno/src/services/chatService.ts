@@ -20,13 +20,6 @@ class ChatService implements IChatService {
     return response.data;
   }
 
-  async getOrCreateGroupConversation(groupId: number): Promise<Conversation> {
-    const response = await apiClient.post(API_CONFIG.ENDPOINTS.CONVERSATIONS, {
-      groupId,
-    });
-    return response.data;
-  }
-
   async getMessages(conversationId: number): Promise<Message[]> {
     const conversationIri = `/api/conversations/${conversationId}`;
     const response = await apiClient.get(

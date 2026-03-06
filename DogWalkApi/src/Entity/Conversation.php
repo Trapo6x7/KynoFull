@@ -17,7 +17,6 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ORM\Entity(repositoryClass: ConversationRepository::class)]
 #[ORM\Table(name: 'conversation')]
 #[ORM\UniqueConstraint(name: 'unique_conversation', columns: ['participant1_id', 'participant2_id'])]
-#[ORM\UniqueConstraint(name: 'unique_group_conversation', columns: ['group_id'])]
 #[ApiResource(
     operations: [
         new GetCollection(
@@ -45,24 +44,13 @@ class Conversation
     #[Groups(['conversation:read'])]
     private ?int $id = null;
 
-    /** 'private' | 'group' */
-    #[ORM\Column(length: 20, options: ['default' => 'private'])]
-    #[Groups(['conversation:read'])]
-    private string $type = 'private';
-
-    /** Renseigné uniquement pour les conversations de groupe */
-    #[ORM\ManyToOne(targetEntity: Group::class)]
-    #[ORM\JoinColumn(name: 'group_id', nullable: true, onDelete: 'CASCADE')]
-    #[Groups(['conversation:read'])]
-    private ?Group $group = null;
-
     #[ORM\ManyToOne(targetEntity: User::class)]
-    #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     #[Groups(['conversation:read'])]
     private ?User $participant1 = null;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
-    #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     #[Groups(['conversation:read'])]
     private ?User $participant2 = null;
 
@@ -94,13 +82,9 @@ class Conversation
     #[ORM\OrderBy(['createdAt' => 'ASC'])]
     private Collection $messages;
 
-    /** ID de l'autre participant (conversation privée) */
+    /** ID de l'autre participant */
     #[Groups(['conversation:write'])]
     private ?int $otherUserId = null;
-
-    /** ID du groupe (conversation de groupe) */
-    #[Groups(['conversation:write'])]
-    private ?int $groupId = null;
 
     public function __construct()
     {
@@ -136,18 +120,7 @@ class Conversation
     public function getOtherUserId(): ?int { return $this->otherUserId; }
     public function setOtherUserId(?int $v): static { $this->otherUserId = $v; return $this; }
 
-    public function getGroupId(): ?int { return $this->groupId; }
-    public function setGroupId(?int $v): static { $this->groupId = $v; return $this; }
-
-    public function getType(): string { return $this->type; }
-    public function setType(string $v): static { $this->type = $v; return $this; }
-
-    public function getGroup(): ?Group { return $this->group; }
-    public function setGroup(?Group $v): static { $this->group = $v; return $this; }
-
-    public function isGroupConversation(): bool { return $this->type === 'group'; }
-
-    /** Vérifie si $user est participant direct (mode private) */
+    /** Vérifie si $user est participant */
     public function hasParticipant(User $user): bool
     {
         return $this->participant1?->getId() === $user->getId()

@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
   countBadge: {
     paddingHorizontal: 9,
     paddingVertical: 2,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.grayDark,
     borderRadius: 12,
     overflow: "hidden",
   },

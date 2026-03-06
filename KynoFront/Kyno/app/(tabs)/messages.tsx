@@ -195,7 +195,7 @@ export default function MessagesScreen() {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Message</Text>
         <TouchableOpacity style={styles.headerSearch} activeOpacity={0.7}>
-          <Ionicons name="search-outline" size={22} color={Colors.primary} />
+          <Ionicons name="search-outline" size={24} color={Colors.grayDark} />
         </TouchableOpacity>
       </View>
 
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: Colors.primary,
+    color: Colors.grayDark,
     paddingHorizontal: 16,
     marginBottom: 10,
   },

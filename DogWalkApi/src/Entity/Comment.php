@@ -15,7 +15,7 @@ use App\DataPersister\CommentDataPersister;
 use Symfony\Component\Serializer\Attribute\Groups;
 
 /**
- * Entité polymorphique pour les commentaires sur différents types d'entités (Group, Walk, Dog, etc.)
+ * Entité polymorphique pour les commentaires sur différents types d'entités (Dog, User)
  */
 #[ApiFilter(SearchFilter::class, properties: ['commentedType' => 'exact', 'commentedId' => 'exact'])]
 #[ORM\Entity(repositoryClass: CommentRepository::class)]
@@ -38,8 +38,6 @@ use Symfony\Component\Serializer\Attribute\Groups;
 )]
 class Comment
 {
-    public const TYPE_GROUP = 'group';
-    public const TYPE_WALK = 'walk';
     public const TYPE_DOG = 'dog';
     public const TYPE_USER = 'user';
 
@@ -147,13 +145,12 @@ class Comment
     }
 
     /**
-     * Méthode helper pour créer un commentaire sur un groupe
      * @deprecated Utiliser setCommentedType et setCommentedId à la place
      */
     public function setGroup(?Group $group): static
     {
         if ($group) {
-            $this->commentedType = self::TYPE_GROUP;
+            $this->commentedType = 'group';
             $this->commentedId = $group->getId();
         }
         return $this;
@@ -164,6 +161,6 @@ class Comment
      */
     public function getGroup(): ?Group
     {
-        return null; // Cette méthode est obsolète
+        return null;
     }
 }

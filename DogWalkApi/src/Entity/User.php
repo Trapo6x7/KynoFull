@@ -108,36 +108,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Comment
         $this->is_complete = $is_complete;
         return $this;
     }
-    /**
-     * @var Collection<int, Group>
-     */
-    #[Groups(['me:read'])]
-    #[ORM\OneToMany(targetEntity: Group::class, mappedBy: 'creator')]
-    private Collection $createdGroups;
 
-    public function getCreatedGroups(): Collection
-    {
-        return $this->createdGroups;
-    }
-
-    public function addCreatedGroup(Group $group): static
-    {
-        if (!$this->createdGroups->contains($group)) {
-            $this->createdGroups->add($group);
-            $group->setCreator($this);
-        }
-        return $this;
-    }
-
-    public function removeCreatedGroup(Group $group): static
-    {
-        if ($this->createdGroups->removeElement($group)) {
-            if ($group->getCreator() === $this) {
-                $group->setCreator(null);
-            }
-        }
-        return $this;
-    }
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -242,20 +213,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Comment
     private Collection $dogs;
 
     /**
-     * @var Collection<int, GroupMembership>
-     * Appartenances aux groupes (remplace groupRoles et groupRequests)
-     */
-    #[ORM\OneToMany(targetEntity: GroupMembership::class, mappedBy: 'user', orphanRemoval: true)]
-    #[Groups(['me:read'])]
-    private Collection $memberships;
-
-    /**
-     * @var Collection<int, Review>
-     */
-    #[ORM\OneToMany(targetEntity: Review::class, mappedBy: 'user', orphanRemoval: true)]
-    private Collection $reviews;
-
-    /**
      * @var Collection<int, UserModeration>
      * Actions de modération (blocks + reports) effectuées par cet utilisateur
      */
@@ -294,10 +251,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Comment
         $this->createdAt = $createdAt;
         $this->updatedAt = $updatedAt;
         $this->dogs = new ArrayCollection();
-        $this->memberships = new ArrayCollection();
-        $this->reviews = new ArrayCollection();
         $this->moderations = new ArrayCollection();
-        $this->createdGroups = new ArrayCollection();
         $this->keywordables = new ArrayCollection();
         $this->images = [];
     }
@@ -537,75 +491,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Comment
             // set the owning side to null (unless already changed)
             if ($dog->getUser() === $this) {
                 $dog->setUser(null);
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, GroupMembership>
-     */
-    public function getMemberships(): Collection
-    {
-        return $this->memberships;
-    }
-
-    public function addMembership(GroupMembership $membership): static
-    {
-        if (!$this->memberships->contains($membership)) {
-            $this->memberships->add($membership);
-            $membership->setUser($this);
-        }
-
-        return $this;
-    }
-
-    public function removeMembership(GroupMembership $membership): static
-    {
-        if ($this->memberships->removeElement($membership)) {
-            if ($membership->getUser() === $this) {
-                $membership->setUser(null);
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * Récupère les groupes actifs de l'utilisateur
-     * @return GroupMembership[]
-     */
-    public function getActiveGroups(): array
-    {
-        return $this->memberships->filter(
-            fn(GroupMembership $m) => $m->isActive()
-        )->toArray();
-    }
-
-    /**
-     * @return Collection<int, Review>
-     */
-    public function getReviews(): Collection
-    {
-        return $this->reviews;
-    }
-
-    public function addReview(Review $review): static
-    {
-        if (!$this->reviews->contains($review)) {
-            $this->reviews->add($review);
-            $review->setUser($this);
-        }
-
-        return $this;
-    }
-
-    public function removeReview(Review $review): static
-    {
-        if ($this->reviews->removeElement($review)) {
-            if ($review->getUser() === $this) {
-                $review->setUser(null);
             }
         }
 

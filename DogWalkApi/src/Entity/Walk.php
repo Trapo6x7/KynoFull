@@ -19,30 +19,25 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ApiResource(
     operations: [
         new GetCollection(
-            uriTemplate: '/groups/{id}/walks',
+            uriTemplate: '/users/me/spots',
             normalizationContext: ['groups' => ['walk:read']],
-            security: "is_granted('GROUP_VIEW', object)",
-            securityMessage: "Seuls les membres du groupe peuvent voir les balades"
+            security: "is_granted('ROLE_USER')"
         ),
         new Get(
             normalizationContext: ['groups' => ['walk:read']],
-            security: "is_granted('WALK_VIEW', object)",
-            securityMessage: "Seuls les membres du groupe peuvent voir la promenade",
+            security: "is_granted('WALK_VIEW', object)"
         ),
         new Post(
             denormalizationContext: ['groups' => ['walk:write']],
-            security: "is_granted('WALK_CREATE')",
-            securityMessage: "Seuls les membres du groupe peuvent créer une promenade",
+            security: "is_granted('ROLE_USER')",
             processor: WalkCreateDataPersister::class
         ),
         new Patch(
             denormalizationContext: ['groups' => ['walk:patch']],
-            security: "is_granted('WALK_EDIT', object)",
-            securityMessage: "Seuls les membres du groupe peuvent modifier la promenade"
+            security: "is_granted('WALK_EDIT', object)"
         ),
         new Delete(
-            security: "is_granted('WALK_DELETE', object)",
-            securityMessage: "Seuls les membres du groupe peuvent supprimer la promenade"
+            security: "is_granted('WALK_DELETE', object)"
         )
     ]
 )]
@@ -66,10 +61,7 @@ class Walk implements CommentableInterface
     #[Groups(['walk:read', 'walk:write', 'walk:patch'])]
     private ?\DateTimeImmutable $startAt = null;
 
-    #[ORM\ManyToOne(inversedBy: 'walks')]
-    #[ORM\JoinColumn(nullable: true)]
-    #[Groups(['walk:read', 'walk:write', 'walk:patch', 'me:read'])]
-    private ?Group $walkGroup = null;
+
 
     /** OSM element ID — used to link a Walk record to a map spot. */
     #[ORM\Column(nullable: true)]
@@ -128,17 +120,7 @@ class Walk implements CommentableInterface
         return $this;
     }
 
-    public function getWalkGroup(): ?Group
-    {
-        return $this->walkGroup;
-    }
 
-    public function setWalkGroup(?Group $walkGroup): static
-    {
-        $this->walkGroup = $walkGroup;
-
-        return $this;
-    }
 
     public function getOsmId(): ?int
     {

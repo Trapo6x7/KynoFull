@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect, useMemo, useCallback } from "react";
+﻿import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useFocusEffect } from "expo-router";
 import {
   View,
   Text,
@@ -55,16 +56,28 @@ const CATEGORY_META: Record<
 };
 
 // ─── Marqueur de spot custom ──────────────────────────────────────────────────
+function darkenHex(hex: string, amount = 0.28): string {
+  const n = parseInt(hex.replace("#", ""), 16);
+  const r = Math.round(((n >> 16) & 0xff) * (1 - amount));
+  const g = Math.round(((n >> 8) & 0xff) * (1 - amount));
+  const b = Math.round((n & 0xff) * (1 - amount));
+  return `rgb(${r},${g},${b})`;
+}
+
 function SpotMarker({
   category,
   size = 30,
+  selected = false,
 }: {
   category?: Exclude<SpotCategory, "Tous">;
   size?: number;
+  selected?: boolean;
 }) {
-  const bgColor = category
+  const baseColor = category
     ? (CATEGORY_META[category]?.color ?? Colors.primary)
     : Colors.primary;
+  const bgColor = selected ? darkenHex(baseColor) : baseColor;
+  const actualSize = selected ? size * 1.45 : size;
   return (
     <View
       collapsable={false}
@@ -74,16 +87,18 @@ function SpotMarker({
         style={[
           styles.spotMarker,
           {
-            width: size,
-            height: size,
-            borderRadius: size / 2,
+            width: actualSize,
+            height: actualSize,
+            borderRadius: actualSize / 2,
             backgroundColor: bgColor,
+            borderWidth: selected ? 2 : 1,
+            borderColor: selected ? "#fff" : "transparent",
           },
         ]}
       >
         <MaterialCommunityIcons
           name="bone"
-          size={size * 0.55}
+          size={actualSize * 0.55}
           color={Colors.white}
         />
       </View>
@@ -419,6 +434,16 @@ export default function MapScreen() {
   const [spotsError, setSpotsError] = useState(false);
   const [selectedSpot, setSelectedSpot] = useState<WalkSpot | null>(null);
   const [ratings, setRatings] = useState<Record<number, number>>({});
+
+  // Reset fullscreen when leaving the tab
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setFullscreen(false);
+        setSelectedSpot(null);
+      };
+    }, []),
+  );
   const [avgRatings, setAvgRatings] = useState<Record<number, number>>({});
 
   useEffect(() => {
@@ -591,7 +616,7 @@ export default function MapScreen() {
                 )
               }
             >
-              <SpotMarker category={m.category} />
+              <SpotMarker category={m.category} selected={selectedSpot?.id === m.id} />
             </Marker>
           ))}
           <Marker
@@ -640,7 +665,7 @@ export default function MapScreen() {
           ))}
         </ScrollView>
 
-        <BottomNav activeTab="map" style={styles.navWrapperFloat} />
+        {!selectedSpot && <BottomNav activeTab="map" style={styles.navWrapperFloat} />}
 
         <SpotModal
           spot={selectedSpot}
@@ -663,7 +688,7 @@ export default function MapScreen() {
           onPress={() => loadSpots(region.latitude, region.longitude, true)}
           activeOpacity={0.7}
         >
-          <Ionicons name="refresh-outline" size={22} color={Colors.primary} />
+          <Ionicons name="refresh-outline" size={22} color={Colors.grayDark} />
         </TouchableOpacity>
       }
     >
@@ -761,7 +786,7 @@ export default function MapScreen() {
             <View style={styles.spotsLoader}>
               <ActivityIndicator size="large" color={Colors.primary} />
               <Text style={styles.spotsLoaderText}>
-                Chargement des spots près de chez vous…
+                Chargement des spots a 10km autour de vous…
               </Text>
             </View>
           ) : spotsError ? (
@@ -789,6 +814,7 @@ export default function MapScreen() {
                 userRating={ratings[spot.id] ?? 0}
                 avgRating={avgRatings[spot.id] ?? 0}
                 onPress={() => {
+                  setSelectedSpot(spot);
                   setFullscreenRegion({
                     latitude: spot.latitude,
                     longitude: spot.longitude,

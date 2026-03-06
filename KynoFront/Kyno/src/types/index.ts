@@ -18,7 +18,6 @@ export interface User {
   roles: string[];
   createdAt: string;
   dogs?: Dog[];
-  createdGroups?: Group[];
   // Champs profil/onboarding
   is_complete?: boolean;
   isVerified?: boolean;
@@ -82,39 +81,6 @@ export interface Walk {
   creator: User;
   participants?: User[];
   status: 'planned' | 'ongoing' | 'completed' | 'cancelled';
-  createdAt: string;
-}
-
-export interface Group {
-  id: number;
-  name: string;
-  description?: string;
-  image?: string;
-  creator: User;
-  members?: GroupMember[];
-  isPrivate: boolean;
-  createdAt: string;
-}
-
-export interface GroupMember {
-  id: number;
-  user: User;
-  role: GroupRole;
-  joinedAt: string;
-}
-
-export interface GroupRole {
-  id: number;
-  name: string;
-  permissions: string[];
-}
-
-export interface GroupRequest {
-  id: number;
-  user: User;
-  group: Group;
-  status: 'pending' | 'accepted' | 'rejected';
-  message?: string;
   createdAt: string;
 }
 
